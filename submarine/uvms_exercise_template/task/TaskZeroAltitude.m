@@ -1,5 +1,6 @@
 classdef TaskZeroAltitude < Task   
    properties
+       id = "zero_altitude"
     end
 
 

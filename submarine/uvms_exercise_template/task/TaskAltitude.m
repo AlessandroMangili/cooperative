@@ -1,6 +1,7 @@
 classdef TaskAltitude < Task   
    properties
         threshold_altitude = 2.0;
+        id = "altitude"
     end
 
 
