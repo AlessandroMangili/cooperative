@@ -3,13 +3,15 @@ classdef minimum_altitude_task < Task
     properties
         desire_minimum_altitude;
         altitude;
+        id;
     end
 
     methods
-        function obj=minimum_altitude_task(robot_ID,taskID, desire_altitude)
+        function obj=minimum_altitude_task(robot_ID,taskID, desire_altitude, id)
             obj.ID=robot_ID;
             obj.task_name=taskID;
             obj.desire_minimum_altitude = desire_altitude;
+            obj.id = id;
         end
 
         function updateReference(obj, robot_system)

@@ -2,6 +2,8 @@ classdef panda_arm < handle
     % Franka Emika Panda Kinematic Model
 
     properties
+        %%
+        grasped
         %% Rigid Body Tree
         robot_model
         %% --- State variables ---
@@ -64,7 +66,8 @@ classdef panda_arm < handle
                         0               0           0       1
                       ];
             obj.wTt = obj.wTe * obj.eTt;
-          
+
+            obj.grasped = false;
         end
 
         function setGoal(obj,obj_position,obj_orientation,arm_dist_offset,arm_rot_offset)
@@ -85,8 +88,13 @@ classdef panda_arm < handle
             obj.wTe=obj.wTb*obj.bTe;
             obj.wTt =obj.wTe*obj.eTt; % missing eTt
             % missing tTo
-            obj.tTo = inv(obj.wTt)*obj.wTo;
-            obj.wTo = obj.wTt * obj.tTo;
+            % obj.tTo = inv(obj.wTt)*obj.wTo;
+            % obj.wTo = obj.wTt * obj.tTo;
+            if ~obj.grasped
+                obj.tTo = inv(obj.wTt)*obj.wTo;
+            else
+                obj.wTo = obj.wTt*obj.tTo;
+            end
         end
 
         function update_jacobian(obj)

@@ -1,14 +1,14 @@
 classdef rigid_grasp_task < Task   
     %Tool position control for a single arm
     properties
-        arm1;
-        arm2;
+        id;
     end
 
     methods
-        function obj=rigid_grasp_task(robot_ID,taskID)
+        function obj=rigid_grasp_task(robot_ID,taskID, id)
             obj.ID=robot_ID;
             obj.task_name=taskID;
+            obj.id = id;
         end
         function updateReference(obj, robot_system)
             if(obj.ID=='L')
@@ -17,9 +17,11 @@ classdef rigid_grasp_task < Task
                 robot=robot_system.right_arm;    
             end
 
-         [v_ang, v_lin] = CartError(robot.wTgo , robot.wTo);
-         robot.dist_to_goal=v_lin;
-         robot.rot_to_goal=v_ang;
+         [v_ang, v_lin] = CartError(robot.wTog , robot.wTo);
+         if robot.grasped
+            robot.dist_to_goal=v_lin;
+            robot.rot_to_goal=v_ang;
+         end
          obj.xdotbar = 1.0 * [v_ang; v_lin];
 
          obj.xdotbar(1:3) = Saturate(obj.xdotbar(1:3), 0.3);

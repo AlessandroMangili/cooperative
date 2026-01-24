@@ -5,12 +5,14 @@ classdef joint_limits_task < Task
         diff_min;
         threshold = 0.2;
         k = 0.5
+        id;
     end
 
     methods
-        function obj=joint_limits_task(robot_ID,taskID)
+        function obj=joint_limits_task(robot_ID,taskID, id)
             obj.ID=robot_ID;
             obj.task_name=taskID;
+            obj.id = id;
         end
 
         function updateReference(obj, robot_system)

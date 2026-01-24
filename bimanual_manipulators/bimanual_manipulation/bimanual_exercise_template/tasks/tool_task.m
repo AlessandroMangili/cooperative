@@ -1,13 +1,14 @@
 classdef tool_task < Task   
     %Tool position control for a single arm
     properties
-
+        id;
     end
 
     methods
-        function obj=tool_task(robot_ID,taskID)
+        function obj=tool_task(robot_ID,taskID, id)
             obj.ID=robot_ID;
             obj.task_name=taskID;
+            obj.id = id;
         end
         function updateReference(obj, robot_system)
             if(obj.ID=='L')
