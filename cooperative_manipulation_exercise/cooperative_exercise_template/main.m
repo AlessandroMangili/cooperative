@@ -18,7 +18,12 @@ real_robot = false;
 %Initiliaze panda_arm() Class, specifying the base offset w.r.t World Frame
 arm1=panda_arm(model,eye(4));
 %TO DO: TRANSFORMATION MATRIX FROM WORLD FRAME TO RIGHT ARM BASE FRAME
-wTb2 =eye(4);
+wTb2 = [
+            -1  0   0   1.06;
+            0   -1  0   -0.01;
+            0   0   1   0
+            0   0   0   1
+        ];
 arm2=panda_arm(model,wTb2);
 
 %Initialize Cooperative Simulator Class
@@ -26,13 +31,14 @@ coop_system=coop_sim(dt,arm1,arm2,end_time);
 
 %Define Object Shape and origin Frame
 obj_length = 0.06;
-w_obj_pos = [0.5 0 0.30]';
+w_obj_pos = [0.5 0 0.59]';
 w_obj_ori = rotation(0,0,0);
 
 %Set goal frames for left and right arm, based on object frame
 %TO DO: Set arm goal frame based on object frame.
-arm1.setGoal(w_obj_pos,w_obj_ori,w_obj_pos,rotation(0, 0, 0));
-arm2.setGoal(w_obj_pos,w_obj_ori,w_obj_pos,rotation(0, 0, 0));
+y_theta = pi/9;
+arm1.setGoal(w_obj_pos,w_obj_ori,[w_obj_pos(1) - obj_length/2; w_obj_pos(2:3)],rotation(pi, -y_theta, 0));
+arm2.setGoal(w_obj_pos,w_obj_ori,[w_obj_pos(1) + obj_length/2; w_obj_pos(2:3)],rotation(0, pi+y_theta, 0));
 
 %Define Object goal frame (Cooperative Motion)
 wTog=[rotation(0,0,0) [0.6, -0.4, 0.48]'; 0 0 0 1];
@@ -51,6 +57,12 @@ go_to_right={right_tool_task};
 %TO DO: Create two action manager objects to manage the tasks of a single
 %manipulator (one for the non-cooperative and one for the cooperative steps
 %of the algorithm)
+%Load Action Manager Class and load actions
+actionManager_arm1 = ActionManager();
+actionManager_arm2 = ActionManager();
+
+actionManager_arm1.addAction(go_to_left);
+actionManager_arm2.addAction(go_to_right);
 
 %Initiliaze robot interface
 robot_udp=UDP_interface(real_robot);
