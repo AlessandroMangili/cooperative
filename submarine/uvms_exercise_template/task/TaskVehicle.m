@@ -1,10 +1,14 @@
 classdef TaskVehicle < Task   
    properties
-        id = "vehicle"
+        id
     end
 
 
     methods
+        function obj = TaskVehicle(id)
+            obj.id = id;
+        end
+
         function updateReference(obj, robot)
             [ang, lin] = CartError(robot.wTgv , robot.wTv);
             %obj.xdotbar = - 0.2 * robot.vTw(1:3,1:3) * lin;

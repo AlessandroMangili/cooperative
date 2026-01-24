@@ -19,13 +19,14 @@ unity = UnityInterface("127.0.0.1");
 task_tool    = TaskTool();
 %task_set = {task_tool};
 
-task_vehicle = TaskVehicle();  
+task_vehicle = TaskVehicle('safe_nav');
+task_vehicle2 = TaskVehicle('landing');
 task_alignment = TaskAlignment();
 task_altitude = TaskAltitude();
 task_zero_altitude = TaskZeroAltitude();
 
 task_set_safe_navigation = {task_altitude, task_alignment, task_vehicle};
-task_set_landing = {task_alignment, task_zero_altitude};
+task_set_landing = {task_alignment, task_zero_altitude, task_vehicle2};
 
 % Define actions and add to ActionManager
 actionManager = ActionManager();
@@ -37,7 +38,6 @@ all_sets = {task_set_safe_navigation, task_set_landing};
 tasks = [all_sets{:}];
 [~, ia] = unique(string(cellfun(@(t) t.id, tasks, 'UniformOutput', false)), 'stable');
 unified_set = tasks(ia);
-%unified_set = unique([all_sets{:}.id]);
 actionManager.addUnifyingTasks(unified_set);
 
 % set current action
@@ -58,7 +58,7 @@ robotModel.setGoal(w_arm_goal_position, w_arm_goal_orientation, w_vehicle_goal_p
 % Initialize the logger
 logger = SimulationLogger(ceil(endTime/dt)+1, robotModel, unified_set);
 
-trh = 0.2;
+trh = 0.25;
 first = true;
 
 % Main simulation loop
@@ -101,3 +101,67 @@ logger.plotAll();
 
 % Clean up Unity interface
 delete(unity);
+
+
+% function unified = mergeTaskSets(all_sets)
+% % MERGETASKSETS Merge ordered task-sets into a unified ordered list.
+% %   unified = mergeTaskSets(all_sets)
+% %   all_sets: cell array where each element è una cell array ordinata di task
+% %             (ogni task ha proprietà .id)
+% %   unified: cell array ordinata, con possibili duplicati quando necessario
+% 
+% unified = {};                 % cell array di oggetti task
+% unified_ids = strings(0);     % string ids corrispondenti (comodo per confronti)
+% 
+% for s = 1:numel(all_sets)
+%     set = all_sets{s};
+%     ids = string(cellfun(@(t) t.id, set, 'UniformOutput', false));
+%     for k = 1:numel(set)
+%         id = ids(k);
+%         before = ids(1:max(0,k-1));
+%         if k < numel(set)
+%             after = ids(k+1:end);
+%         else
+%             after = strings(0);
+%         end
+% 
+%         % trova tutte le occorrenze già presenti nella unified
+%         same_idx = find(unified_ids == id);
+%         found_consistent = false;
+% 
+%         % prova se una occorrenza esistente è consistente con l'ordine corrente
+%         for idx = same_idx
+%             ok_before = true;
+%             for b = before
+%                 b_idx = find(unified_ids == b);
+%                 if ~isempty(b_idx) && max(b_idx) >= idx
+%                     ok_before = false;
+%                     break;
+%                 end
+%             end
+%             if ~ok_before
+%                 continue;
+%             end
+% 
+%             ok_after = true;
+%             for a = after
+%                 a_idx = find(unified_ids == a);
+%                 if ~isempty(a_idx) && min(a_idx) <= idx
+%                     ok_after = false;
+%                     break;
+%                 end
+%             end
+%             if ok_after
+%                 found_consistent = true;
+%                 break;
+%             end
+%         end
+% 
+%         % se non esiste una occorrenza coerente, append (duplicazione)
+%         if ~found_consistent
+%             unified{end+1} = set{k};                %#ok<AGROW>
+%             unified_ids(end+1) = id;               %#ok<AGROW>
+%         end
+%     end
+% end
+% end

@@ -76,6 +76,8 @@ classdef ActionManager < handle
             inCurrent = ismember(string(task_ids), string(current_task_ids));
             inPrev    = ismember(string(task_ids), string(prev_task_ids));
 
+           
+
             for i = 1:length(tasks)
                 task = tasks{i};
                 task.updateReference(robot);
