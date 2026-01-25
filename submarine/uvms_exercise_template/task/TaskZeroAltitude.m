@@ -1,10 +1,13 @@
 classdef TaskZeroAltitude < Task   
    properties
-       id = "zero_altitude"
-    end
-
+       id;
+   end
 
     methods
+        function obj = TaskZeroAltitude(id)
+            obj.id = id;
+        end
+
         function updateReference(obj, robot)
             alt = 0;
             if (isempty(robot.altitude))

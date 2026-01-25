@@ -82,6 +82,7 @@ classdef ActionManager < handle
                 task = tasks{i};
                 task.updateReference(robot);
                 task.updateJacobian(robot);
+                task.updateActivation(robot);
 
                 if inCurrent(i) && ~inPrev(i)
                     % entering → fade in
@@ -91,9 +92,9 @@ classdef ActionManager < handle
                     % leaving → fade out
                     task.updateActivation(robot);
                     task.A = task.A * (1 - alpha);
-                else
+                elseif ~inCurrent(i) && ~inPrev(i)
                     % steady → normal activation
-                    task.updateActivation(robot);
+                    task.A = task.A * 0;
                 end
             end
             

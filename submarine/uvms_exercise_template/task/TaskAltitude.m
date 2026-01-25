@@ -1,11 +1,15 @@
 classdef TaskAltitude < Task   
    properties
-        threshold_altitude = 2.0;
-        id = "altitude"
-    end
-
+        threshold_altitude;
+        id;
+   end
 
     methods
+        function obj = TaskAltitude(id, threshold)
+            obj.id = id;
+            obj.threshold_altitude = threshold;
+        end
+
         function updateReference(obj, robot)
             %alt = 0;
             if(isempty(robot.altitude))

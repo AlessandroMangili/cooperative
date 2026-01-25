@@ -8,7 +8,7 @@ clc; clear; close all;
 
 % Simulation parameters
 dt       = 0.005;
-endTime  = 40;
+endTime  = 100;
 % Initialize robot model and simulator
 robotModel = UvmsModel();          
 sim = UvmsSim(dt, robotModel, endTime);
@@ -21,20 +21,25 @@ task_tool    = TaskTool();
 
 task_vehicle = TaskVehicle('safe_nav');
 task_vehicle2 = TaskVehicle('landing');
-task_alignment = TaskAlignment();
-task_altitude = TaskAltitude();
-task_zero_altitude = TaskZeroAltitude();
+task_alignment = TaskAlignment("alignment");
+task_align_x = TaskAlign_x("align_x");
+task_altitude = TaskAltitude("altitude", 2.0);
+task_zero_altitude = TaskZeroAltitude("zero_altitude");
+task_fixed_base = TaskFixedBase("fixed_base");
+task_manipulability = TaskManipulability("manipulability", 1.4);
 
 task_set_safe_navigation = {task_altitude, task_alignment, task_vehicle};
-task_set_landing = {task_alignment, task_zero_altitude, task_vehicle2};
+task_set_landing = {task_align_x, task_manipulability, task_zero_altitude};
+task_set_grasp = {task_zero_altitude, task_fixed_base, task_tool};
 
 % Define actions and add to ActionManager
 actionManager = ActionManager();
 actionManager.addAction(task_set_safe_navigation, "safe_navigation");   % action 1
 actionManager.addAction(task_set_landing, "landing");                   % action 2
+actionManager.addAction(task_set_grasp, "grasping");                    % action 3
 
 % Unifying sets
-all_sets = {task_set_safe_navigation, task_set_landing};
+all_sets = {task_set_safe_navigation, task_set_landing, task_set_grasp};
 tasks = [all_sets{:}];
 [~, ia] = unique(string(cellfun(@(t) t.id, tasks, 'UniformOutput', false)), 'stable');
 unified_set = tasks(ia);
@@ -49,7 +54,7 @@ w_arm_goal_orientation = [0, pi, pi/2];
 %w_vehicle_goal_position = [12.2025   37.3748  -39.8860]';
 %w_vehicle_goal_position = [10.5 		37.5	   -38]';
 %w_vehicle_goal_position = [45 2 -33]';
-w_vehicle_goal_position = [10.5 37.5 -38]';
+w_vehicle_goal_position = [8.5 37.5 -38]';
 w_vehicle_goal_orientation = [0, -0.06, 0.5];
 
 % Set goals in the robot model
@@ -59,19 +64,27 @@ robotModel.setGoal(w_arm_goal_position, w_arm_goal_orientation, w_vehicle_goal_p
 logger = SimulationLogger(ceil(endTime/dt)+1, robotModel, unified_set);
 
 trh = 0.25;
-first = true;
+first = false;
+second = false;
 
 % Main simulation loop
 for step = 1:sim.maxSteps
     % 1. Receive altitude from Unity
     robotModel.altitude = unity.receiveAltitude(robotModel);
 
-    %wdisp(robotModel.eta);
+    %disp(robotModel.eta);
 
     [v_ang, v_lin] = CartError(robotModel.wTgv , robotModel.wTv);
-    if norm(v_lin(1:2)) < trh & v_ang(3) < trh & first      % CONTROLLO ORIENTAMENTO SU Z PER EVITARE CONFLITTO
+    if norm(v_lin(1:2)) < trh && v_ang(3) < trh & ~first      % CONTROLLO ORIENTAMENTO SU Z PER EVITARE CONFLITTO
         actionManager.setCurrentAction("landing");
-        first = false;
+        first = true;
+    end
+
+    wTb = robotModel.wTv * robotModel.vTb;
+    [~, v_lin] = CartError(robotModel.wTg , wTb);
+    if ~isempty(robotModel.altitude) && robotModel.altitude <= 0.02 && ~second && first && norm(v_lin) <  1.12
+        actionManager.setCurrentAction("grasping");
+        second = true;
     end
 
     % 2. Compute control commands for current action

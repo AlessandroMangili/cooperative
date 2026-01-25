@@ -1,11 +1,16 @@
 classdef TaskAlignment < Task   
    properties
         theta;
-        id = "alignment"
+        id;
     end
 
 
     methods
+        function obj = TaskAlignment(id)
+            obj.id = id;
+            obj.theta = 0.0;
+        end
+        
         function updateReference(obj, robot)
             wRv = robot.wTv(1:3,1:3);
             zR = wRv(:,3);
