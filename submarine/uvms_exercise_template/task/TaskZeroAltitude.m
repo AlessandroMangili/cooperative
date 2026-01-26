@@ -15,6 +15,9 @@ classdef TaskZeroAltitude < Task
             else
                 alt = robot.altitude;
             end
+            if alt < 1e-03          % Problema sprofondava
+                alt = 0;
+            end
             obj.xdotbar = -0.2 * alt;
             obj.xdotbar = Saturate(obj.xdotbar, 0.2);
         end

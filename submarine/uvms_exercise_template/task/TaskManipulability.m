@@ -15,7 +15,6 @@ classdef TaskManipulability < Task
             wTb = robot.wTv*robot.vTb;
             [~, obj.lin] = CartError(robot.wTg , wTb);
             obj.lin(3) = 0;
-            %obj.e = norm(lin) - obj.arm_length;
             obj.xdotbar = 0.2 * obj.lin;
             % limit the requested velocities...
             obj.xdotbar(1:3) = Saturate(obj.xdotbar(1:3), 0.2);
