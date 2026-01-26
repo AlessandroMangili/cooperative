@@ -23,8 +23,9 @@ classdef SimulationLogger < handle
             obj.v_nu = zeros(6, maxLoops);
 
             % Store the diagonal of each activation matrix
-            maxDiagSize = max(cellfun(@(t) size(t.A,1), task_set));
-            obj.a = zeros(maxDiagSize, maxLoops, length(task_set));
+            %maxDiagSize = max(cellfun(@(t) size(t.A,1), task_set));
+            %obj.a = zeros(maxDiagSize, maxLoops, length(task_set));
+            obj.a = zeros(6, maxLoops, length(task_set)); % Add
 
             % Initialize cell array to store task reference velocities
             obj.xdotbar_task = cell(length(task_set), maxLoops);
@@ -39,9 +40,31 @@ classdef SimulationLogger < handle
             obj.v_nu(:, loop) = obj.robot.v_nu;
 
             % Store task activations (diagonal only) and reference velocities
+            % for i = 1:length(obj.task_set)
+            %     diagA = diag(obj.task_set{i}.A);           % extract diagonal
+            %     obj.a(1:length(diagA), loop, i) = diagA;
+            %     obj.xdotbar_task{i, loop} = obj.task_set{i}.xdotbar;
+            % end
+
+            %  CHAT
             for i = 1:length(obj.task_set)
-                diagA = diag(obj.task_set{i}.A);           % extract diagonal
-                obj.a(1:length(diagA), loop, i) = diagA;
+                A = obj.task_set{i}.A;
+                if isscalar(A)
+                    % Task scalare → replica su 6 DOF
+                    diagA = repmat(A, 6, 1);
+                else
+                    % Task vettoriale → usa la diagonale
+                    diagA = diag(A);
+            
+                    % (opzionale) sicurezza: forzi comunque a 6
+                    if length(diagA) < 6
+                        diagA(end+1:6, 1) = diagA(end);
+                    elseif length(diagA) > 6
+                        diagA = diagA(1:6);
+                    end
+                end
+            
+                obj.a(:, loop, i) = diagA;
                 obj.xdotbar_task{i, loop} = obj.task_set{i}.xdotbar;
             end
         end
