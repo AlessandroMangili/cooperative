@@ -2,21 +2,21 @@ classdef TaskManipulability < Task
     properties
         id;
         arm_length;
-        e;
+        lin;
     end
 
     methods
         function obj = TaskManipulability(id, arm_length)
             obj.id = id;
-            obj.arm_length = arm_length * 0.6;
+            obj.arm_length = arm_length;
         end
 
         function updateReference(obj, robot)
             wTb = robot.wTv*robot.vTb;
-            [~, lin] = CartError(robot.wTg , wTb);
-            lin(3) = 0;
-            obj.e = norm(lin) - obj.arm_length;
-            obj.xdotbar = 0.2 * lin;
+            [~, obj.lin] = CartError(robot.wTg , wTb);
+            obj.lin(3) = 0;
+            %obj.e = norm(lin) - obj.arm_length;
+            obj.xdotbar = 0.2 * obj.lin;
             % limit the requested velocities...
             obj.xdotbar(1:3) = Saturate(obj.xdotbar(1:3), 0.2);
         end
@@ -29,7 +29,7 @@ classdef TaskManipulability < Task
         
         function updateActivation(obj, robot)
             obj.A = eye(3);
-            obj.A = obj.A * IncreasingBellShapedFunction(0.0, 0.3, 0, 1, obj.e);
+            obj.A = obj.A * IncreasingBellShapedFunction(obj.arm_length * 0.6, obj.arm_length * 0.8, 0, 1, norm(obj.lin));
         end
     end
 end

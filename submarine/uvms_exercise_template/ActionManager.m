@@ -76,7 +76,7 @@ classdef ActionManager < handle
             inCurrent = ismember(string(task_ids), string(current_task_ids));
             inPrev    = ismember(string(task_ids), string(prev_task_ids));
 
-           
+           %% DA CAMBIARE CON BELL SHAPE FUNCITONS
 
             for i = 1:length(tasks)
                 task = tasks{i};
@@ -86,11 +86,9 @@ classdef ActionManager < handle
 
                 if inCurrent(i) && ~inPrev(i)
                     % entering → fade in
-                    task.updateActivation(robot);
                     task.A = task.A * alpha;
                 elseif ~inCurrent(i) && inPrev(i)
                     % leaving → fade out
-                    task.updateActivation(robot);
                     task.A = task.A * (1 - alpha);
                 elseif ~inCurrent(i) && ~inPrev(i)
                     % steady → normal activation

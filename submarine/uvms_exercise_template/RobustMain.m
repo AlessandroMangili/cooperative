@@ -8,16 +8,16 @@ clc; clear; close all;
 
 % Simulation parameters
 dt       = 0.005;
-endTime  = 100;
+endTime  = 85;
 % Initialize robot model and simulator
 robotModel = UvmsModel();          
 sim = UvmsSim(dt, robotModel, endTime);
 % Initialize Unity interface
 unity = UnityInterface("127.0.0.1");
 
+arm_length = 1.4; % m
 % Define tasks     
 task_tool    = TaskTool();
-%task_set = {task_tool};
 
 task_vehicle = TaskVehicle('safe_nav');
 task_vehicle2 = TaskVehicle('landing');
@@ -26,11 +26,11 @@ task_align_x = TaskAlign_x("align_x");
 task_altitude = TaskAltitude("altitude", 2.0);
 task_zero_altitude = TaskZeroAltitude("zero_altitude");
 task_fixed_base = TaskFixedBase("fixed_base");
-task_manipulability = TaskManipulability("manipulability", 1.4);
+task_manipulability = TaskManipulability("manipulability", arm_length);
 
 task_set_safe_navigation = {task_altitude, task_alignment, task_vehicle};
-task_set_landing = {task_align_x, task_manipulability, task_zero_altitude};
-task_set_grasp = {task_zero_altitude, task_fixed_base, task_tool};
+task_set_landing = {task_align_x, task_manipulability, task_zero_altitude};     % TASK PER NON FARLO STRISCIARE
+task_set_grasp = {task_zero_altitude, task_fixed_base, task_tool};              % RIGURDARE TASK FIXED BASE PER ERRORE MOVIMENTO QUANDO IL GOAL È LONTANO
 
 % Define actions and add to ActionManager
 actionManager = ActionManager();
@@ -54,7 +54,7 @@ w_arm_goal_orientation = [0, pi, pi/2];
 %w_vehicle_goal_position = [12.2025   37.3748  -39.8860]';
 %w_vehicle_goal_position = [10.5 		37.5	   -38]';
 %w_vehicle_goal_position = [45 2 -33]';
-w_vehicle_goal_position = [8.5 37.5 -38]';
+w_vehicle_goal_position = [10.5 37.5 -38]';
 w_vehicle_goal_orientation = [0, -0.06, 0.5];
 
 % Set goals in the robot model
@@ -82,7 +82,7 @@ for step = 1:sim.maxSteps
 
     wTb = robotModel.wTv * robotModel.vTb;
     [~, v_lin] = CartError(robotModel.wTg , wTb);
-    if ~isempty(robotModel.altitude) && robotModel.altitude <= 0.02 && ~second && first && norm(v_lin) <  1.12
+    if ~isempty(robotModel.altitude) && robotModel.altitude <= 0.02 && ~second && first && norm(v_lin) <  arm_length * 0.8
         actionManager.setCurrentAction("grasping");
         second = true;
     end
