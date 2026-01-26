@@ -142,8 +142,8 @@ classdef ActionManager < handle
                 Xo_1_2 = H_12*(eye(12)-pinv(C)*C)*Xdot_t;
                 
                 % Cerca nelle celle l'oggetto x che ha x.taskID uguale a "LT"
-                grasp_l_id = find(cellfun(@(x) x.id == "grasp_l", tasks), 1);
-                grasp_r_id = find(cellfun(@(x) x.id == "grasp_r", tasks), 1);
+                grasp_l_id = find(cellfun(@(x) x.id == "graspLeft", tasks), 1);
+                grasp_r_id = find(cellfun(@(x) x.id == "graspRight", tasks), 1);
     
                 tasks{grasp_l_id}.xdotbar = Xo_1_2(1:6,:);
                 tasks{grasp_r_id}.xdotbar = Xo_1_2(7:12,:);

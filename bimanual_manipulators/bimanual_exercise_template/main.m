@@ -46,26 +46,26 @@ arm1.set_obj_goal(wTog)
 arm2.set_obj_goal(wTog)
 
 %Define Tasks, input values(Robot type(L,R,BM), Task Name)
-left_tool_task=tool_task("L","LT", "tool_l");
-right_tool_task=tool_task("R","RT", "tool_r");
+left_tool_task=tool_task("L","LT", "toolLeft");
+right_tool_task=tool_task("R","RT", "toolRight");
 
 % TASK
 % minimum altitude
 threshold_altitude = 0.15;
-minimum_altitude_l = minimum_altitude_task("L", "LT", threshold_altitude, "altitude_l");
-minimum_altitude_r = minimum_altitude_task("R", "RT", threshold_altitude, "altitude_r");
+minimum_altitude_l = minimum_altitude_task("L", "LT", threshold_altitude, "altitudeLeft");
+minimum_altitude_r = minimum_altitude_task("R", "RT", threshold_altitude, "altitudeRight");
 
 % joint limits
-joint_limits_l = joint_limits_task("L", "LT", "limits_l");
-joint_limits_r = joint_limits_task("R", "RT", "limits_r");
+joint_limits_l = joint_limits_task("L", "LT", "jointLimitsLeft");
+joint_limits_r = joint_limits_task("R", "RT", "jointLimitsRight");
 
 % rigid grasp
-rigid_grasp_l = rigid_grasp_task("L","LT", "grasp_l");
-rigid_grasp_r = rigid_grasp_task("R","RT", "grasp_r");
+rigid_grasp_l = rigid_grasp_task("L","LT", "graspLeft");
+rigid_grasp_r = rigid_grasp_task("R","RT", "graspRight");
 
 % zero velocities
-zero_velocities_l = zero_velocities_task("L", "LT", "zero_l");
-zero_velocities_r = zero_velocities_task("R", "RT", "zero_r");
+zero_velocities_l = zero_velocities_task("L", "LT", "zeroVelocitiesLeft");
+zero_velocities_r = zero_velocities_task("R", "RT", "zeroVelocitiesRight");
 
 %Load Action Manager Class and load actions
 actionManager = ActionManager();
