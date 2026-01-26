@@ -46,7 +46,7 @@ classdef minimum_altitude_task < Task
         function updateActivation(obj, robot_system)
             %obj.A = eye(6);
             th = obj.desire_minimum_altitude;
-            offset = 0.1;
+            offset = 0.05;
             obj.A = DecreasingBellShapedFunction(th, th+offset, 0, 1, obj.altitude);
         end
     end

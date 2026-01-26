@@ -31,8 +31,8 @@ classdef SimulationLogger < handle
             % end
             %obj.xdotbar_task=cell(length(action_set.actions), max(l), maxLoops);
 
-            maxDiagSize = max(cellfun(@(t) size(t.A,1), obj.tasks_set));
-            obj.a = zeros(maxDiagSize, maxLoops, length(obj.tasks_set));
+            %maxDiagSize = max(cellfun(@(t) size(t.A,1), obj.tasks_set));
+            obj.a = zeros(7, maxLoops, length(obj.tasks_set));
         end
 
         function update(obj, t, loop)
@@ -50,10 +50,25 @@ classdef SimulationLogger < handle
             % end
 
 
-            % ADD
+            % modified plot
             for i = 1:length(obj.tasks_set)
-                diagA = diag(obj.tasks_set{i}.A);           % extract diagonal
-                obj.a(1:length(diagA), loop, i) = diagA;
+                A = obj.tasks_set{i}.A;
+                if isscalar(A)
+                    % Task scalare → replica su 6 DOF
+                    diagA = repmat(A, 7, 1);
+                else
+                    % Task vettoriale → usa la diagonale
+                    diagA = diag(A);
+            
+                    % (opzionale) sicurezza: forzi comunque a 6
+                    if length(diagA) < 7
+                        diagA(end+1:7, 1) = diagA(end);
+                    elseif length(diagA) > 7
+                        diagA = diagA(1:7);
+                    end
+                end
+            
+                obj.a(:, loop, i) = diagA;
                 obj.xdotbar_task{i, loop} = obj.tasks_set{i}.xdotbar;
             end
 

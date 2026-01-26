@@ -1,49 +1,31 @@
-classdef rigid_grasp_task < Task   
-    %Tool position control for a single arm
+classdef rigid_grasp_task < Task
     properties
         id;
     end
+    % Bimanual rigid grasp kinematic constraint
+    % Enforces: J_oL*qdot_L - J_oR*qdot_R = 0
 
     methods
-        function obj=rigid_grasp_task(robot_ID,taskID, id)
-            obj.ID=robot_ID;
-            obj.task_name=taskID;
+        function obj=rigid_grasp_task(id)
             obj.id = id;
         end
+        
         function updateReference(obj, robot_system)
-            if(obj.ID=='L')
-                robot=robot_system.left_arm;
-            elseif(obj.ID=='R')
-                robot=robot_system.right_arm;    
-            end
-
-         [v_ang, v_lin] = CartError(robot.wTog , robot.wTo);
-         if robot.grasped
-            robot.dist_to_goal=v_lin;
-            robot.rot_to_goal=v_ang;
-         end
-         obj.xdotbar = 1.0 * [v_ang; v_lin];
-
-         obj.xdotbar(1:3) = Saturate(obj.xdotbar(1:3), 0.3);
-         obj.xdotbar(4:6) = Saturate(obj.xdotbar(4:6), 0.3);
+            % Rigid constraint - zero reference
+            obj.xdotbar = zeros(6,1);
         end
         
-        function updateJacobian(obj,robot_system)
-            if(obj.ID=='L')
-                robot=robot_system.left_arm;
-            elseif(obj.ID=='R')
-                robot=robot_system.right_arm;    
-            end
-            
-            if obj.ID=='L'
-                obj.J=[robot.wJo, zeros(6, 7)];
-            elseif obj.ID=='R'
-                obj.J=[zeros(6, 7), robot.wJo];
-            end
+        function updateJacobian(obj, robot_system)        
+            % Object-frame Jacobians
+            J_L = robot_system.left_arm.wJt;  
+            J_R = robot_system.right_arm.wJt;              
+            obj.J = [J_L, -J_R];
         end
-
+        
         function updateActivation(obj, robot_system)
+            % Physical constraint - always active
             obj.A = eye(6);
         end
     end
 end
+       

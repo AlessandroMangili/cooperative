@@ -7,7 +7,7 @@ addpath('./tasks')
 clc;clear;close all; 
 %Simulation Parameters
 dt = 0.005;
-end_time = 15;
+end_time = 20;
 
 % Initialize Franka Emika Panda Model
 model = load("panda.mat");
@@ -31,7 +31,7 @@ bm_sim=bimanual_sim(dt,arm1,arm2,end_time);
 
 %Define Object Shape and origin Frame
 obj_length = 0.10;
-w_obj_pos = [0.5 0 0.59]';
+w_obj_pos = [0.5 0.0 0.59]';
 w_obj_ori = rotation(0,0,0);
 
 %Set goal frames for left and right arm, based on object frame
@@ -56,12 +56,15 @@ minimum_altitude_l = minimum_altitude_task("L", "LT", threshold_altitude, "altit
 minimum_altitude_r = minimum_altitude_task("R", "RT", threshold_altitude, "altitudeRight");
 
 % joint limits
-joint_limits_l = joint_limits_task("L", "LT", "jointLimitsLeft");
-joint_limits_r = joint_limits_task("R", "RT", "jointLimitsRight");
+joint_threshold = 0.2;
+joint_limits_l = joint_limits_task("L", "LT", "jointLimitsLeft", joint_threshold);
+joint_limits_r = joint_limits_task("R", "RT", "jointLimitsRight", joint_threshold);
 
 % rigid grasp
-rigid_grasp_l = rigid_grasp_task("L","LT", "graspLeft");
-rigid_grasp_r = rigid_grasp_task("R","RT", "graspRight");
+rigid_grasp = rigid_grasp_task("rigidGrasp");
+
+rigid_move_l = rigid_move_task("L", "LT", "rigidMoveL");
+rigid_move_r = rigid_move_task("R", "RT", "rigidMoveR");
 
 % zero velocities
 zero_velocities_l = zero_velocities_task("L", "LT", "zeroVelocitiesLeft");
@@ -72,7 +75,7 @@ actionManager = ActionManager();
 
 %Actions for each phase: go to phase, coop_motion phase, end_motion phase
 go_to = {joint_limits_l,joint_limits_r,minimum_altitude_l, minimum_altitude_r, left_tool_task, right_tool_task};
-coop = {joint_limits_l, joint_limits_r, minimum_altitude_l, minimum_altitude_r, rigid_grasp_l, rigid_grasp_r};
+coop = {rigid_grasp, joint_limits_l, joint_limits_r, rigid_move_l, rigid_move_r, minimum_altitude_l, minimum_altitude_r};
 zero_vel = {minimum_altitude_l, minimum_altitude_r, zero_velocities_l, zero_velocities_r};
 
 actionManager.addAction(go_to, "reaching");
@@ -107,7 +110,7 @@ for t = 0:dt:end_time
     bm_sim.update_full_kinematics();
     
     % 3. Compute control commands for current action
-    [q_dot]=actionManager.computeICAT(bm_sim);
+    [q_dot]=actionManager.computeICAT(bm_sim, dt);
 
     % 4. Step the simulator (integrate velocities)
     bm_sim.sim(q_dot);
@@ -115,7 +118,7 @@ for t = 0:dt:end_time
     % 5. Send updated state to Pybullet
     robot_udp.send(t,bm_sim)
 
-    %disp(arm1.q)
+    %disp(arm1.wTt(3,4));
 
     % 6. Lggging
     logger.update(bm_sim.time,bm_sim.loopCounter)
@@ -123,15 +126,15 @@ for t = 0:dt:end_time
     % 7. Optional real-time slowdown
     SlowdownToRealtime(dt);
 
-    if (norm(arm1.dist_to_goal) < 1.0e-03 && ~arm1.grasped) && (norm(arm2.dist_to_goal) < 1.0e-03 && ~arm2.grasped)
+    if (norm(arm1.dist_to_goal) < 1.0e-02 && ~arm1.grasped) && (norm(arm2.dist_to_goal) < 1.0e-02 && ~arm2.grasped)
         actionManager.setCurrentAction("grasping"); 
         arm1.grasped = true;
         arm2.grasped = true;
-        rigid_grasp_l.updateReference(bm_sim);
-        rigid_grasp_r.updateReference(bm_sim);
+        rigid_move_l.updateReference(bm_sim);
+        rigid_move_r.updateReference(bm_sim);
     end
 
-    if (norm(arm1.dist_to_goal) < 1.0e-03 && ~arm1.o_reached) && (norm(arm2.dist_to_goal) < 1.0e-03 && ~arm2.o_reached)
+    if (norm(arm1.dist_to_goal) < 1.0e-02 && ~arm1.o_reached) && (norm(arm2.dist_to_goal) < 1.0e-02 && ~arm2.o_reached)
         actionManager.setCurrentAction("zero_vel"); 
         arm1.o_reached = true;
         arm2.o_reached = true;
