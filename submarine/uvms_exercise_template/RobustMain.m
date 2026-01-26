@@ -15,17 +15,16 @@ sim = UvmsSim(dt, robotModel, endTime);
 % Initialize Unity interface
 unity = UnityInterface("127.0.0.1");
 
-arm_length = 1.4; % m
+arm_length = 1.4; % meters
 % Define tasks     
-task_tool    = TaskTool();
-
-task_vehicle = TaskVehicle('safe_nav');
-task_vehicle2 = TaskVehicle('landing');
+task_tool    = TaskTool("tool");
+task_vehicle = TaskVehicle("safeNav");
+task_vehicle2 = TaskVehicle("landing");
 task_alignment = TaskAlignment("alignment");
-task_align_x = TaskAlign_x("align_x");
+task_align_x = TaskAlign_x("alignX");
 task_altitude = TaskAltitude("altitude", 2.0);
-task_zero_altitude = TaskZeroAltitude("zero_altitude");
-task_fixed_base = TaskFixedBase("fixed_base");
+task_zero_altitude = TaskZeroAltitude("zeroAltitude");
+task_fixed_base = TaskFixedBase("fixedBase");
 task_manipulability = TaskManipulability("manipulability", arm_length);
 
 task_set_safe_navigation = {task_altitude, task_alignment, task_vehicle};
@@ -114,67 +113,3 @@ logger.plotAll();
 
 % Clean up Unity interface
 delete(unity);
-
-
-% function unified = mergeTaskSets(all_sets)
-% % MERGETASKSETS Merge ordered task-sets into a unified ordered list.
-% %   unified = mergeTaskSets(all_sets)
-% %   all_sets: cell array where each element è una cell array ordinata di task
-% %             (ogni task ha proprietà .id)
-% %   unified: cell array ordinata, con possibili duplicati quando necessario
-% 
-% unified = {};                 % cell array di oggetti task
-% unified_ids = strings(0);     % string ids corrispondenti (comodo per confronti)
-% 
-% for s = 1:numel(all_sets)
-%     set = all_sets{s};
-%     ids = string(cellfun(@(t) t.id, set, 'UniformOutput', false));
-%     for k = 1:numel(set)
-%         id = ids(k);
-%         before = ids(1:max(0,k-1));
-%         if k < numel(set)
-%             after = ids(k+1:end);
-%         else
-%             after = strings(0);
-%         end
-% 
-%         % trova tutte le occorrenze già presenti nella unified
-%         same_idx = find(unified_ids == id);
-%         found_consistent = false;
-% 
-%         % prova se una occorrenza esistente è consistente con l'ordine corrente
-%         for idx = same_idx
-%             ok_before = true;
-%             for b = before
-%                 b_idx = find(unified_ids == b);
-%                 if ~isempty(b_idx) && max(b_idx) >= idx
-%                     ok_before = false;
-%                     break;
-%                 end
-%             end
-%             if ~ok_before
-%                 continue;
-%             end
-% 
-%             ok_after = true;
-%             for a = after
-%                 a_idx = find(unified_ids == a);
-%                 if ~isempty(a_idx) && min(a_idx) <= idx
-%                     ok_after = false;
-%                     break;
-%                 end
-%             end
-%             if ok_after
-%                 found_consistent = true;
-%                 break;
-%             end
-%         end
-% 
-%         % se non esiste una occorrenza coerente, append (duplicazione)
-%         if ~found_consistent
-%             unified{end+1} = set{k};                %#ok<AGROW>
-%             unified_ids(end+1) = id;               %#ok<AGROW>
-%         end
-%     end
-% end
-% end

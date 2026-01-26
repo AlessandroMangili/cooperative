@@ -1,10 +1,14 @@
 classdef TaskTool < Task   
     properties
-        id = "tool";
+        id;
     end
 
 
     methods
+        function obj = TaskTool(id)
+            obj.id = id;
+        end
+
         function updateReference(obj, robot)
             [v_ang, v_lin] = CartError(robot.vTg , robot.vTt);
             obj.xdotbar = 0.2 * [v_ang; v_lin];

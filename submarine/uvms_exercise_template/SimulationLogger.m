@@ -65,11 +65,12 @@ classdef SimulationLogger < handle
             legend('xdot','ydot','zdot','omega_x','omega_y','omega_z');
 
             % Optional: plot task activations
+            colors = lines(size(obj.a,3));
             figure(3);
             for i = 1:size(obj.a,3)
                 subplot(size(obj.a,3),1,i);
-                plot(obj.t, squeeze(obj.a(:, :, i))', 'LineWidth', 1);
-                title(['Task ', num2str(i), ' Activations (diagonal)']);
+                plot(obj.t, squeeze(obj.a(:, :, i))', 'LineWidth', 1, 'Color', colors(i,:));
+                title(sprintf('Task: %s Activations (diagonal)', obj.task_set{i}.id));
             end
         end
     end
