@@ -21,12 +21,9 @@ classdef ActionManager < handle
          end
 
         function setCurrentAction(obj, action_name)
-            disp('=== DEBUG setCurrentAction ===');
-            disp(['Cercando azione: ', action_name]);
-            disp(['Numero di azioni registrate: ', num2str(length(obj.action_names))]);
-            disp('Nomi delle azioni registrate:');
+            disp(['Seeking current action: ', action_name]);
+            disp('Actions saved:');
             disp(obj.action_names);
-            disp('==============================');
 
             idx = find([obj.action_names{:}] == action_name, 1);
             if isempty(idx)
@@ -36,25 +33,18 @@ classdef ActionManager < handle
             if idx ~= obj.currentAction
                 obj.previousAction = obj.currentAction;
                 obj.currentAction  = idx;
-                obj.actionSwitchTime = tic;
+                obj.actionSwitchTime = 0;
             end
         end
 
-        function [v_nu, qdot] = computeICAT(obj, robot)
+        function [v_nu, qdot] = computeICAT(obj, robot, dt)
+            obj.actionSwitchTime = obj.actionSwitchTime + dt;
+
             tasks = obj.unifying_actions;
             task_ids = [];
             for i = 1:length(tasks)
                 task_ids{i} = tasks{i}.id;
             end
-
-            % compute blending ratio
-            if obj.actionSwitchTime ~= 0
-                t = toc(obj.actionSwitchTime);
-                alpha = min(t / obj.transitionDuration, 1);
-            else
-                alpha = 1;
-            end
-            %check discontinuità -> sostituisci con brll shape
 
             % current/previous task sets
             current_tasks = obj.actions{obj.currentAction};
@@ -76,8 +66,6 @@ classdef ActionManager < handle
             inCurrent = ismember(string(task_ids), string(current_task_ids));
             inPrev    = ismember(string(task_ids), string(prev_task_ids));
 
-           %% DA CAMBIARE CON BELL SHAPE FUNCITONS
-
             for i = 1:length(tasks)
                 task = tasks{i};
                 task.updateReference(robot);
@@ -86,14 +74,17 @@ classdef ActionManager < handle
 
                 if inCurrent(i) && ~inPrev(i)
                     % entering → fade in
-                    task.A = task.A * alpha;
+                    alpha = IncreasingBellShapedFunction(0, obj.transitionDuration, 0, 1, obj.actionSwitchTime);
                 elseif ~inCurrent(i) && inPrev(i)
                     % leaving → fade out
-                    task.A = task.A * (1 - alpha);
+                    alpha = DecreasingBellShapedFunction(0, obj.transitionDuration, 0, 1, obj.actionSwitchTime);
                 elseif ~inCurrent(i) && ~inPrev(i)
                     % steady → normal activation
-                    task.A = task.A * 0;
+                    alpha = 0;
+                elseif inCurrent(i) && inPrev(i)
+                    alpha = 1;
                 end
+                task.A = task.A * alpha;
             end
             
 

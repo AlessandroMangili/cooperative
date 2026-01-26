@@ -13,7 +13,7 @@ classdef TaskAltitude < Task
         function updateReference(obj, robot)
             %alt = 0;
             if(isempty(robot.altitude))
-                alt = 2;
+                alt = 8;
             else
                 alt = robot.altitude;
             end
@@ -28,7 +28,7 @@ classdef TaskAltitude < Task
         function updateActivation(obj, robot)
             %alt = 0;
             if(isempty(robot.altitude))
-                alt = 2;
+                alt = 8;
             else
                 alt = robot.altitude;
             end

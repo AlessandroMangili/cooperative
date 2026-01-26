@@ -8,7 +8,7 @@ clc; clear; close all;
 
 % Simulation parameters
 dt       = 0.005;
-endTime  = 70;
+endTime  = 68;
 % Initialize robot model and simulator
 robotModel = UvmsModel();          
 sim = UvmsSim(dt, robotModel, endTime);
@@ -87,7 +87,7 @@ for step = 1:sim.maxSteps
     end
 
     % 2. Compute control commands for current action
-    [v_nu, q_dot] = actionManager.computeICAT(robotModel);
+    [v_nu, q_dot] = actionManager.computeICAT(robotModel, dt);
 
     % 3. Step the simulator (integrate velocities)
     sim.step(v_nu, q_dot);
