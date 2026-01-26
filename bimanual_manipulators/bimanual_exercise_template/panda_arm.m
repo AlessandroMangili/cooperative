@@ -2,8 +2,9 @@ classdef panda_arm < handle
     % Franka Emika Panda Kinematic Model
 
     properties
-        %%
+        %% FLAGs
         grasped
+        o_reached
         %% Rigid Body Tree
         robot_model
         %% --- State variables ---
@@ -68,6 +69,7 @@ classdef panda_arm < handle
             obj.wTt = obj.wTe * obj.eTt;
 
             obj.grasped = false;
+            obj.o_reached = false;
         end
 
         function setGoal(obj,obj_position,obj_orientation,arm_dist_offset,arm_rot_offset)

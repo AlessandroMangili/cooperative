@@ -63,18 +63,24 @@ joint_limits_r = joint_limits_task("R", "RT", "limits_r");
 rigid_grasp_l = rigid_grasp_task("L","LT", "grasp_l");
 rigid_grasp_r = rigid_grasp_task("R","RT", "grasp_r");
 
+% zero velocities
+zero_velocities_l = zero_velocities_task("L", "LT", "zero_l");
+zero_velocities_r = zero_velocities_task("R", "RT", "zero_r");
+
 %Load Action Manager Class and load actions
 actionManager = ActionManager();
 
 %Actions for each phase: go to phase, coop_motion phase, end_motion phase
-go_to={joint_limits_l,joint_limits_r,minimum_altitude_l, minimum_altitude_r, left_tool_task, right_tool_task};
-coop={joint_limits_l, joint_limits_r, minimum_altitude_l, minimum_altitude_r, rigid_grasp_l, rigid_grasp_r};
+go_to = {joint_limits_l,joint_limits_r,minimum_altitude_l, minimum_altitude_r, left_tool_task, right_tool_task};
+coop = {joint_limits_l, joint_limits_r, minimum_altitude_l, minimum_altitude_r, rigid_grasp_l, rigid_grasp_r};
+zero_vel = {minimum_altitude_l, minimum_altitude_r, zero_velocities_l, zero_velocities_r};
 
 actionManager.addAction(go_to, "reaching");
 actionManager.addAction(coop, "grasping");
+actionManager.addAction(zero_vel, "zero_vel");
 
 % Unifying sets
-all_sets = {go_to, coop};
+all_sets = {go_to, coop, zero_vel};
 tasks = [all_sets{:}];
 [~, ia] = unique(string(cellfun(@(t) t.id, tasks, 'UniformOutput', false)), 'stable');
 unified_set = tasks(ia);
@@ -121,6 +127,14 @@ for t = 0:dt:end_time
         actionManager.setCurrentAction("grasping"); 
         arm1.grasped = true;
         arm2.grasped = true;
+        rigid_grasp_l.updateReference(bm_sim);
+        rigid_grasp_r.updateReference(bm_sim);
+    end
+
+    if (norm(arm1.dist_to_goal) < 1.0e-03 && ~arm1.o_reached) && (norm(arm2.dist_to_goal) < 1.0e-03 && ~arm2.o_reached)
+        actionManager.setCurrentAction("zero_vel"); 
+        arm1.o_reached = true;
+        arm2.o_reached = true;
     end
 end
 %Display joint position and velocity, Display for a given action, a number

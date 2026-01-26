@@ -1,11 +1,11 @@
-classdef tool_task < Task   
+classdef zero_velocities_task < Task   
     %Tool position control for a single arm
     properties
         id;
     end
 
     methods
-        function obj=tool_task(robot_ID,taskID, id)
+        function obj=zero_velocities_task(robot_ID,taskID, id)
             obj.ID=robot_ID;
             obj.task_name=taskID;
             obj.id = id;
@@ -16,15 +16,7 @@ classdef tool_task < Task
             elseif(obj.ID=='R')
                 robot=robot_system.right_arm;    
             end
-         [v_ang, v_lin] = CartError(robot.wTg, robot.wTt);
-         if ~robot.grasped
-             robot.dist_to_goal=v_lin;
-             robot.rot_to_goal=v_ang;
-         end
-         obj.xdotbar = 1.0 * [v_ang; v_lin];
-         % limit the requested velocities...
-         obj.xdotbar(1:3) = Saturate(obj.xdotbar(1:3), 0.3);
-         obj.xdotbar(4:6) = Saturate(obj.xdotbar(4:6), 0.3);
+            obj.xdotbar = zeros(7,1);
         end
         
         function updateJacobian(obj,robot_system)
@@ -33,17 +25,15 @@ classdef tool_task < Task
             elseif(obj.ID=='R')
                 robot=robot_system.right_arm;    
             end
-            tool_jacobian=robot.wJt;
-            
             if obj.ID=='L'
-                obj.J=[tool_jacobian, zeros(6, 7)];
+                obj.J=[eye(7), zeros(7, 7)];
             elseif obj.ID=='R'
-                obj.J=[zeros(6, 7), tool_jacobian];
+                obj.J=[zeros(7, 7), eye(7)];
             end
         end
 
         function updateActivation(obj, robot_system)
-            obj.A = eye(6);
+            obj.A = eye(7);
         end
     end
 end

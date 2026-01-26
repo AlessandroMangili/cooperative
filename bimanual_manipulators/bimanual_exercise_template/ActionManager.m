@@ -2,7 +2,7 @@ classdef ActionManager < handle
     properties
         actions = {}      % cell array of actions (each action = stack of tasks)
         action_names = []     % names of actions
-        unifying_actions = {}
+        unifying_actions
         currentAction = 1 % index of currently active action
         previousAction = []
         actionSwitchTime = 0
@@ -81,23 +81,18 @@ classdef ActionManager < handle
                 task = tasks{i};
                 task.updateReference(bm_system);
                 task.updateJacobian(bm_system);
-                
-                if (tasks{i}.id == "grasp_l" || tasks{i}.id == "grasp_r") && inCurrent(i)
-                    task.updateActivation(bm_system);
-                elseif (tasks{i}.id == "grasp_l" || tasks{i}.id == "grasp_r") && ~inCurrent(i)
-                    task.updateActivation(bm_system);
+                task.updateActivation(bm_system);
+
+                if (tasks{i}.id == "grasp_l" || tasks{i}.id == "grasp_r") && ~inCurrent(i)
                     task.A = task.A * 0;
                 elseif inCurrent(i) && ~inPrev(i)
                     % entering → fade in
-                    task.updateActivation(bm_system);
                     task.A = task.A * alpha;
                 elseif ~inCurrent(i) && inPrev(i)
                     % leaving → fade out
-                    task.updateActivation(bm_system);
                     task.A = task.A * (1 - alpha);
-                else
-                    % steady → normal activation
-                    task.updateActivation(bm_system);
+                elseif ~inCurrent(i) && ~inPrev(i)
+                    task.A = task.A * 0;
                 end
             end
             % tasks = obj.actions{obj.currentAction};
