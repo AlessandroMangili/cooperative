@@ -9,6 +9,7 @@ classdef SimulationLogger < handle
         xdotbar_task % reference velocities for tasks (cell array)
         robot        % robot model
         action_set     % set of actions
+        tasks_set %% ADD
         n
     end
 
@@ -16,6 +17,7 @@ classdef SimulationLogger < handle
         function obj = SimulationLogger(maxLoops, robotModel, action_set)
             obj.robot = robotModel;
             obj.action_set = action_set;
+            obj.tasks_set = action_set.unifying_actions;
 
             obj.t = zeros(1, maxLoops);
             obj.ql = zeros(7, maxLoops);
@@ -23,13 +25,14 @@ classdef SimulationLogger < handle
             obj.qr = zeros(7, maxLoops);
             obj.qdotr = zeros(7, maxLoops);
             obj.n=length(action_set.actions);
-            l=zeros(1,obj.n);
-            for i=1:obj.n
-                l(i)=length(action_set.actions{i});
-            end
+            % l=zeros(1,obj.n);
+            % for i=1:obj.n
+            %     l(i)=length(action_set.actions{i});
+            % end
+            %obj.xdotbar_task=cell(length(action_set.actions), max(l), maxLoops);
 
-            obj.xdotbar_task=cell(length(action_set.actions), max(l), maxLoops);
-            
+            maxDiagSize = max(cellfun(@(t) size(t.A,1), obj.tasks_set));
+            obj.a = zeros(maxDiagSize, maxLoops, length(obj.tasks_set));
         end
 
         function update(obj, t, loop)
@@ -40,10 +43,18 @@ classdef SimulationLogger < handle
             obj.qr(:, loop) = obj.robot.right_arm.q;
             obj.qdotr(:, loop) = obj.robot.right_arm.qdot;
             %Store task reference velocities
-            for i=1:obj.n
-                for j=1:length(obj.action_set.actions{i})
-                    obj.xdotbar_task{i,j,loop}=obj.action_set.actions{i}{j}.xdotbar;
-                end
+            % for i=1:obj.n
+            %     for j=1:length(obj.action_set.actions{i})
+            %         obj.xdotbar_task{i,j,loop}=obj.action_set.actions{i}{j}.xdotbar;
+            %     end
+            % end
+
+
+            % ADD
+            for i = 1:length(obj.tasks_set)
+                diagA = diag(obj.tasks_set{i}.A);           % extract diagonal
+                obj.a(1:length(diagA), loop, i) = diagA;
+                obj.xdotbar_task{i, loop} = obj.tasks_set{i}.xdotbar;
             end
 
 
@@ -67,21 +78,30 @@ classdef SimulationLogger < handle
                 plot(obj.t, obj.qdotr, 'LineWidth', 2);
                 legend('qd_1','qd_2','qd_3','qd_4','qd_5','qd_6','qd_7');
 
-                % Optional: plot a number of tasks from an specific action set
+                % ADD
+                colors = lines(size(obj.a,3));
                 figure(3);
-                s=squeeze(obj.xdotbar_task(action,:,:));
-                nt=length(task);
-                title(strcat('Action Set'," ",num2str(action)));  
-                for i=1:nt
-                    subplot(1,nt,i)
-                    data=cell2mat(s(task(i),:));
-                    plot(obj.t(1,1:end-1),data','.-')
-                    grid on
-                    if(obj.action_set.actions{action}{task(i)}.task_name=="T")
-                        legend('wx','wy','wz','vx','vy','vz');
-                    end
-                    title([strcat('Robot'," ",obj.action_set.actions{action}{task(i)}.ID," ",'Task'," ",num2str(task(i))," ",obj.action_set.actions{action}{task(i)}.task_name)]);
+                for i = 1:size(obj.a,3)
+                    subplot(size(obj.a,3),1,i);
+                    plot(obj.t, squeeze(obj.a(:, :, i))', 'LineWidth', 1, 'Color', colors(i,:));
+                    title(sprintf('Task: %s Activations (diagonal)', obj.tasks_set{i}.id));
                 end
+
+                % Optional: plot a number of tasks from an specific action set
+                % figure(3);
+                % s=squeeze(obj.xdotbar_task(action,:,:));
+                % nt=length(task);
+                % title(strcat('Action Set'," ",num2str(action)));  
+                % for i=1:nt
+                %     subplot(1,nt,i)
+                %     data=cell2mat(s(task(i),:));
+                %     plot(obj.t(1,1:end-1),data','.-')
+                %     grid on
+                %     if(obj.action_set.actions{action}{task(i)}.task_name=="T")
+                %         legend('wx','wy','wz','vx','vy','vz');
+                %     end
+                %     title([strcat('Robot'," ",obj.action_set.actions{action}{task(i)}.ID," ",'Task'," ",num2str(task(i))," ",obj.action_set.actions{action}{task(i)}.task_name)]);
+                % end
             end
 
     end
