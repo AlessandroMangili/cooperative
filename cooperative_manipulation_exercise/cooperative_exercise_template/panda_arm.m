@@ -2,6 +2,8 @@ classdef panda_arm < handle
     % Franka Emika Panda Kinematic Model
 
     properties
+        grasped
+        xdot_coop_vel     % vel coop
         %% Rigid Body Tree
         robot_model
         %% --- State variables ---
@@ -65,7 +67,9 @@ classdef panda_arm < handle
                         0               0           0       1
                       ];
             obj.wTt = obj.wTe * obj.eTt;
-          
+            
+            obj.grasped = false;
+            obj.xdot_coop_vel = zeros(6,1);
         end
 
         function setGoal(obj,obj_position,obj_orientation,arm_dist_offset,arm_rot_offset)
@@ -88,6 +92,12 @@ classdef panda_arm < handle
             %TO DO: Update the transformation from world frame to Tool
             %Frame
             obj.wTt = obj.wTe*obj.eTt;
+
+            if ~obj.grasped
+                obj.tTo = pinv(obj.wTt)*obj.wTo;
+            else
+                obj.wTo = obj.wTt*obj.tTo;
+            end
             
         end
         function update_jacobian(obj)
@@ -96,6 +106,9 @@ classdef panda_arm < handle
             bJe = geometricJacobian(obj.robot_model.franka,[obj.q',0,0],'panda_link7');%DO NOT EDIT
             Ste = [eye(3) zeros(3); -skew(obj.wTe(1:3,1:3)*obj.eTt(1:3,4)) eye(3)];
             obj.wJt = Ste * [obj.wTb(1:3,1:3) zeros(3,3); zeros(3,3) obj.wTb(1:3,1:3)] * bJe(:, 1:7);
+
+            Sot = [eye(3) zeros(3); -skew(obj.wTt(1:3,1:3)*obj.tTo(1:3,4)) eye(3)];
+            obj.wJo = Sot * obj.wJt;
         end
     end
 end

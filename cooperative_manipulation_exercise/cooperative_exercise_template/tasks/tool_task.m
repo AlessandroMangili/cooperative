@@ -1,13 +1,12 @@
 classdef tool_task < Task   
     %Tool position control for a single arm
     properties
-
+        id;
     end
 
     methods
-        function obj=tool_task(robot_ID,taskID)
-            obj.ID=robot_ID;
-            obj.task_name=taskID;
+        function obj=tool_task(id)
+            obj.id = id;
         end
         function updateReference(obj, robot)
          [v_ang, v_lin] = CartError(robot.wTg , robot.wTt);

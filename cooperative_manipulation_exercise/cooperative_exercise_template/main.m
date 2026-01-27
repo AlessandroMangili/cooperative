@@ -7,7 +7,7 @@ addpath('./tasks')
 clc;clear;close all; 
 %Simulation Parameters
 dt = 0.005;
-end_time = 20;
+end_time = 15;
 
 % Initialize Franka Emika Panda Model
 model = load("panda.mat");
@@ -31,7 +31,7 @@ coop_system=coop_sim(dt,arm1,arm2,end_time);
 
 %Define Object Shape and origin Frame
 obj_length = 0.06;
-w_obj_pos = [0.5 0 0.59]';
+w_obj_pos = [0.5 0 0.30]';
 w_obj_ori = rotation(0,0,0);
 
 %Set goal frames for left and right arm, based on object frame
@@ -41,18 +41,46 @@ arm1.setGoal(w_obj_pos,w_obj_ori,[w_obj_pos(1) - obj_length/2; w_obj_pos(2:3)],r
 arm2.setGoal(w_obj_pos,w_obj_ori,[w_obj_pos(1) + obj_length/2; w_obj_pos(2:3)],rotation(0, pi+y_theta, 0));
 
 %Define Object goal frame (Cooperative Motion)
-wTog=[rotation(0,0,0) [0.6, -0.4, 0.48]'; 0 0 0 1];
+wTog=[rotation(0,0,0) [0.6, 0.4, 0.48]'; 0 0 0 1];
 arm1.set_obj_goal(wTog)
 arm2.set_obj_goal(wTog)
 
 %Define Tasks, input values(Robot type(L,R,BM), Task Name)
-left_tool_task=tool_task("L","LT");
-right_tool_task=tool_task("R","RT");
+left_tool_task=tool_task("toolLeft");
+right_tool_task=tool_task("toolRight");
+
+% minimum altitude
+threshold_altitude = 0.15;
+minimum_altitude_l = minimum_altitude_task("altitudeLeft", threshold_altitude);
+minimum_altitude_r = minimum_altitude_task("altitudeRight", threshold_altitude);
+
+% joint limits
+joint_threshold = 0.2;
+joint_limits_l = joint_limits_task("jointLimitsLeft", joint_threshold);
+joint_limits_r = joint_limits_task("jointLimitsRight", joint_threshold);
+
+% set cooperative velocitities
+coop_vel_l = coop_rigid_grasp_task("coop_grasp_l");
+coop_vel_r = coop_rigid_grasp_task("coop_grasp_r");
+
+% rigid grasp
+rigid_move_l = rigid_move_task("rigidMoveL");
+rigid_move_r = rigid_move_task("rigidMoveR");
+
+% zero velocities
+zero_velocities_l = zero_velocities_task("zeroVelocitiesLeft");
+zero_velocities_r = zero_velocities_task("zeroVelocitiesRight");
 
 %TO DO: Define the actions for each manipulator (remember the specific one
 %for the cooperation)
-go_to_left={left_tool_task};
-go_to_right={right_tool_task};
+go_to_left={joint_limits_l, minimum_altitude_l, left_tool_task};
+go_to_right={joint_limits_r, minimum_altitude_r, right_tool_task};
+
+coop_left={joint_limits_l, minimum_altitude_l, rigid_move_l};
+coop_right={joint_limits_r, minimum_altitude_r, rigid_move_r};
+
+zero_vel_left = {minimum_altitude_l, zero_velocities_l};
+zero_vel_right = {minimum_altitude_r, zero_velocities_r};
 
 %TO DO: Create two action manager objects to manage the tasks of a single
 %manipulator (one for the non-cooperative and one for the cooperative steps
@@ -61,11 +89,41 @@ go_to_right={right_tool_task};
 actionManager_arm1 = ActionManager();
 actionManager_arm2 = ActionManager();
 
-actionManager_arm1.addAction(go_to_left);
-actionManager_arm2.addAction(go_to_right);
+actionManager_arm1.addAction(go_to_left, "reachingLeft");
+actionManager_arm1.addAction(coop_left, "graspingLeft");
+actionManager_arm1.addAction(zero_vel_left, "zeroVelLeft");
+actionManager_arm2.addAction(go_to_right, "reachingRight");
+actionManager_arm2.addAction(coop_right, "graspingRight");
+actionManager_arm2.addAction(zero_vel_right, "zeroVelRight");
+
+% Unifying sets left
+all_sets_left = {{coop_vel_l}, go_to_left, coop_left, zero_vel_left};
+tasks_left = [all_sets_left{:}];
+[~, ia] = unique(string(cellfun(@(t) t.id, tasks_left, 'UniformOutput', false)), 'stable');
+unified_set_left = tasks_left(ia);
+actionManager_arm1.addUnifyingTasks(unified_set_left);
+
+% Unifying sets right
+all_sets_right = {{coop_vel_r}, go_to_right, coop_right, zero_vel_right};
+tasks_right = [all_sets_right{:}];
+[~, ia] = unique(string(cellfun(@(t) t.id, tasks_right, 'UniformOutput', false)), 'stable');
+unified_set_right = tasks_right(ia);
+actionManager_arm2.addUnifyingTasks(unified_set_right);
+
+% set current action left
+actionManager_arm1.setCurrentAction("reachingLeft"); 
+% set current action right
+actionManager_arm2.setCurrentAction("reachingRight"); 
 
 %Initiliaze robot interface
 robot_udp=UDP_interface(real_robot);
+
+% THRESHOLD REACH THE GOAL
+threshold_goal = 1.0e-02;
+% Initial bias for cooperation weights
+mu0 = 0.001;
+%
+system_rigid_attached = false;
 
 %Initialize logger
 logger_left=SimulationLogger(ceil(end_time/dt)+1,coop_system.left_arm);
@@ -83,12 +141,64 @@ for t = 0:dt:end_time
     
     % 3. TO DO: compute the TPIK for each manipulator with your action
     % manager
+    [ql_dot_nocoop]=actionManager_arm1.computeICAT(coop_system.left_arm, dt);
+    [qr_dot_nocoop]=actionManager_arm2.computeICAT(coop_system.right_arm, dt);
+    ql_dot = ql_dot_nocoop;
+    qr_dot = qr_dot_nocoop;
 
-    % 4. TO DO: COOPERATION hierarchy
-    % SAVE THE NON COOPERATIVE VELOCITIES COMPUTED
+    if (norm(coop_system.left_arm.dist_to_goal) < threshold_goal && ~coop_system.left_arm.grasped) && (norm(coop_system.right_arm.dist_to_goal) < threshold_goal && ~coop_system.right_arm.grasped)
+        actionManager_arm1.setCurrentAction("graspingLeft");
+        actionManager_arm2.setCurrentAction("graspingRight");
+        coop_system.left_arm.grasped = true;
+        coop_system.right_arm.grasped = true;
 
-    % 5. TO DO: compute the TPIK for each manipulator with your action
-    % manager (with the constrained action to track the coop velocity)
+        system_rigid_attached = true;
+    end
+    if system_rigid_attached
+        % RIGID BODY CONSTRAINT
+        % Reference generator: desired object twist
+        % Computed in Object Motion Task
+        
+        % 4. TO DO: COOPERATION hierarchy
+        % SAVE THE NON COOPERATIVE VELOCITIES COMPUTED
+        [v_ang, v_lin] = CartError(coop_system.left_arm.wTog, coop_system.left_arm.wTo);
+        % Desired object velocity
+        xdot_ref_o = 1.0 * [v_ang; v_lin];
+
+        % Desire tool velocity
+        xdot_left_t = coop_system.left_arm.wJo * ql_dot_nocoop;
+        xdot_right_t = coop_system.right_arm.wJo * qr_dot_nocoop;
+
+        % Compute weights        
+        mu_a = mu0 + norm(xdot_ref_o - xdot_left_t);
+        mu_b = mu0 + norm(xdot_ref_o - xdot_right_t);
+
+        % Weighted cooperative velocity (xhat_dot)
+        x_hat_dot = (mu_a*xdot_left_t + mu_b*xdot_right_t) / (mu_a + mu_b);
+
+        % Compute rigid grasp constraint and feasible space
+        Jo_l = coop_system.left_arm.wJo;
+        Jo_r = coop_system.right_arm.wJo;
+    
+        % Compute the constraint matrices
+        Ha = Jo_l*pinv(Jo_l);
+        Hb = Jo_r*pinv(Jo_r);
+        C = [Ha -Hb];
+        Hab = [Ha zeros(6)
+              zeros(6) Hb];
+
+        % Project onto feasible subspace
+        x_tilde_dot = Hab * (eye(12) - pinv(C)*C) * [x_hat_dot; x_hat_dot];
+
+        % Set cooperative task reference
+        coop_system.left_arm.xdot_coop_vel  = x_tilde_dot(1:6);
+        coop_system.right_arm.xdot_coop_vel = x_tilde_dot(7:12);
+
+        % 5. TO DO: compute the TPIK for each manipulator with your action
+        % manager (with the constrained action to track the coop velocity)
+        [ql_dot] = actionManager_arm1.computeICAT(coop_system.left_arm, dt);
+        [qr_dot] = actionManager_arm2.computeICAT(coop_system.right_arm, dt);
+    end
 
     % 6. get the two variables for integration
     coop_system.sim(ql_dot,qr_dot);
