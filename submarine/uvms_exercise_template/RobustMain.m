@@ -23,12 +23,12 @@ task_vehicle2 = TaskVehicle("landing");
 task_alignment = TaskAlignment("alignment");
 task_align_x = TaskAlign_x("alignX");
 task_altitude = TaskAltitude("altitude", 2.0);
-task_zero_altitude = TaskZeroAltitude("zeroAltitude");
+task_zero_altitude = TaskZeroAltitude("zeroAltitude", 0.0);
 task_fixed_base = TaskFixedBase("fixedBase", arm_length);
 task_manipulability = TaskManipulability("manipulability", arm_length);
 
 task_set_safe_navigation = {task_altitude, task_alignment, task_vehicle};
-task_set_landing = {task_align_x, task_manipulability, task_zero_altitude};     % TASK PER NON FARLO STRISCIARE
+task_set_landing = {task_alignment, task_align_x, task_manipulability, task_zero_altitude};
 task_set_grasp = {task_zero_altitude, task_fixed_base, task_tool};             
 
 % Define actions and add to ActionManager
@@ -53,7 +53,7 @@ w_arm_goal_orientation = [0, pi, pi/2];
 %w_vehicle_goal_position = [12.2025   37.3748  -39.8860]';
 %w_vehicle_goal_position = [10.5 		37.5	   -38]';
 %w_vehicle_goal_position = [45 2 -33]';
-w_vehicle_goal_position = [12.5 37.5 -38]';
+w_vehicle_goal_position = [10.5 37.5 -38]';
 w_vehicle_goal_orientation = [0, -0.06, 0.5];
 
 % Set goals in the robot model
@@ -74,7 +74,7 @@ for step = 1:sim.maxSteps
     %disp(robotModel.eta);
 
     [v_ang, v_lin] = CartError(robotModel.wTgv , robotModel.wTv);
-    if norm(v_lin(1:2)) < trh && v_ang(3) < trh & ~first      % CONTROLLO ORIENTAMENTO SU Z PER EVITARE CONFLITTO
+    if norm(v_lin(1:2)) < trh && v_ang(3) < trh & ~first
         actionManager.setCurrentAction("landing");
         first = true;
     end

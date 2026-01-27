@@ -30,7 +30,7 @@ classdef TaskFixedBase < Task
                 lin_err = zeros(3,1);
             end
             
-            v_ref = -0.2 * robot.vTw(1:3,1:3) * lin_err;
+            v_ref = -0.4 * robot.vTw(1:3,1:3) * lin_err;
             obj.xdotbar = v_ref;
             obj.xdotbar(1:3) = Saturate(obj.xdotbar(1:3), 0.2);
         end

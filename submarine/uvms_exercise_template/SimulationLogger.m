@@ -46,7 +46,7 @@ classdef SimulationLogger < handle
             %     obj.xdotbar_task{i, loop} = obj.task_set{i}.xdotbar;
             % end
 
-            %  CHAT
+            % modified plot
             for i = 1:length(obj.task_set)
                 A = obj.task_set{i}.A;
                 if isscalar(A)

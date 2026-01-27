@@ -16,16 +16,21 @@ classdef TaskAlign_x < Task
             [~, lin] = CartError(robot.wTg, robot.wTv);
             lin(3) = 0;
 
-            ang =  skew(xRv)*lin;
-            
-            obj.theta = atan2(norm(ang), dot(xRv,lin));
-
-            if(obj.theta < 0)
-                obj.theta = 2* pi + obj.theta;
+            if norm(lin) > 1e-6
+                lin = lin / norm(lin);
+            else
+                lin = xRv;
             end
 
-            obj.xdotbar = -0.2 * (0.1 - obj.theta);
-            obj.xdotbar = Saturate(obj.xdotbar, 0.2);
+            ang =  skew(xRv)*lin;
+            obj.theta = atan2(norm(ang), dot(xRv,lin));
+
+            % if(obj.theta < 0)
+            %     obj.theta = 2* pi + obj.theta;
+            % end
+
+            obj.xdotbar = -0.4 * (0.1 - obj.theta);
+            obj.xdotbar = Saturate(obj.xdotbar, 0.4);
         end
         function updateJacobian(obj, robot)
             wRv = robot.wTv(1:3,1:3);

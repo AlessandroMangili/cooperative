@@ -1,11 +1,13 @@
 classdef TaskZeroAltitude < Task   
    properties
        id;
+       threshold;
    end
 
     methods
-        function obj = TaskZeroAltitude(id)
+        function obj = TaskZeroAltitude(id, threshold)
             obj.id = id;
+            obj.threshold = threshold;
         end
 
         function updateReference(obj, robot)
@@ -15,11 +17,8 @@ classdef TaskZeroAltitude < Task
             else
                 alt = robot.altitude;
             end
-            if alt < 1e-03          % Problema sprofondava
-                alt = 0;
-            end
-            obj.xdotbar = -0.2 * alt;
-            obj.xdotbar = Saturate(obj.xdotbar, 0.2);
+            obj.xdotbar = -0.2 * (alt - obj.threshold);
+            obj.xdotbar = Saturate(obj.xdotbar, 0.1);
         end
         function updateJacobian(obj, robot)
             obj.J = [0 0 1] * [zeros(3,7) eye(3) zeros(3,3)];
