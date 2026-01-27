@@ -7,7 +7,7 @@ addpath('./tasks')
 clc;clear;close all; 
 %Simulation Parameters
 dt = 0.005;
-end_time = 20;
+end_time = 30;
 
 % Initialize Franka Emika Panda Model
 model = load("panda.mat");
@@ -75,8 +75,8 @@ actionManager = ActionManager();
 
 %Actions for each phase: go to phase, coop_motion phase, end_motion phase
 go_to = {joint_limits_l,joint_limits_r,minimum_altitude_l, minimum_altitude_r, left_tool_task, right_tool_task};
-coop = {rigid_grasp, joint_limits_l, joint_limits_r, rigid_move_l, rigid_move_r, minimum_altitude_l, minimum_altitude_r};
-zero_vel = {minimum_altitude_l, minimum_altitude_r, zero_velocities_l, zero_velocities_r};
+coop = {rigid_grasp, joint_limits_l, joint_limits_r, minimum_altitude_l, minimum_altitude_r, rigid_move_l, rigid_move_r};
+zero_vel = {rigid_grasp, minimum_altitude_l, minimum_altitude_r, zero_velocities_l, zero_velocities_r};
 
 actionManager.addAction(go_to, "reaching");
 actionManager.addAction(coop, "grasping");

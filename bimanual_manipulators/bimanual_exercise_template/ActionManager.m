@@ -72,9 +72,9 @@ classdef ActionManager < handle
                 task.updateJacobian(bm_system);
                 task.updateActivation(bm_system);
 
-                if (tasks{i}.id == "rigidMoveL" || tasks{i}.id == "rigidMoveR") && ~inCurrent(i)
+                if (tasks{i}.id == "rigidGrasp") && ~inCurrent(i)
                     alpha = 0;
-                elseif (tasks{i}.id == "rigidMoveL" || tasks{i}.id == "rigidMoveR") && ~inPrev(i)
+                elseif (tasks{i}.id == "rigidGrasp") && inCurrent(i)
                     alpha = 1;
                 elseif inCurrent(i) && ~inPrev(i)
                     % entering → fade in
