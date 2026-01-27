@@ -106,7 +106,9 @@ classdef panda_arm < handle
             %R = obj.tTo(1:3,1:3);
             %p = obj.tTo(1:3,4);
             %Sot = [ R, zeros(3); -skew(p)*R, R ];
-            Sot = [eye(3) zeros(3); -skew(obj.tTo(1:3,4)) eye(3)];
+            
+            %Sot = [eye(3) zeros(3); -skew(obj.tTo(1:3,4)) eye(3)];
+            Sot = [eye(3) zeros(3); -skew(obj.wTt(1:3,1:3)*obj.tTo(1:3,4)) eye(3)];
             obj.wJo = Sot * obj.wJt;
         end
     end
