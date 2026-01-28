@@ -41,7 +41,8 @@ arm1.setGoal(w_obj_pos,w_obj_ori,[w_obj_pos(1) - obj_length/2; w_obj_pos(2:3)],r
 arm2.setGoal(w_obj_pos,w_obj_ori,[w_obj_pos(1) + obj_length/2; w_obj_pos(2:3)],rotation(0, pi+y_theta, 0));
 
 %Define Object goal frame (Cooperative Motion)
-wTog=[rotation(0,0,0) [0.6, 0.4, 0.48]'; 0 0 0 1];
+%wTog=[rotation(0,0,0) [0.6, 0.4, 0.48]'; 0 0 0 1];
+wTog=[rotation(0,0,0) [0.7, 0.4, 0.48]'; 0 0 0 1];
 arm1.set_obj_goal(wTog)
 arm2.set_obj_goal(wTog)
 

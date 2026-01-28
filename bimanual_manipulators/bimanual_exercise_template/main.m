@@ -7,7 +7,7 @@ addpath('./tasks')
 clc;clear;close all; 
 %Simulation Parameters
 dt = 0.005;
-end_time = 30;
+end_time = 20;
 
 % Initialize Franka Emika Panda Model
 model = load("panda.mat");
@@ -43,7 +43,9 @@ arm1.setGoal(w_obj_pos,w_obj_ori, [w_obj_pos(1) - obj_length/2; w_obj_pos(2:3)],
 arm2.setGoal(w_obj_pos,w_obj_ori, [w_obj_pos(1) + obj_length/2; w_obj_pos(2:3)],rotation(0, pi+y_theta, 0));
 
 %Define Object goal frame (Cooperative Motion)
-wTog=[rotation(0,0,0) [0.65, -0.35, 0.28]'; 0 0 0 1];
+%wTog=[rotation(0,0,0) [0.65, -0.35, 0.28]'; 0 0 0 1];
+%wTog=[rotation(0,0,0) [-0.6, 0.3, 0.4]'; 0 0 0 1]; %STRESS ANDRE SX
+wTog=[rotation(0,0,0) [1.2, -0.3, 0.4]'; 0 0 0 1];  %STRESS ANDRE DX
 arm1.set_obj_goal(wTog)
 arm2.set_obj_goal(wTog)
 
@@ -120,26 +122,31 @@ for t = 0:dt:end_time
     % 5. Send updated state to Pybullet
     robot_udp.send(t,bm_sim)
 
-    disp(arm1.wTt(3,4));
+    %disp(bm_sim.left_arm.wTt(3,4));
 
     % 6. Lggging
     logger.update(bm_sim.time,bm_sim.loopCounter)
-    bm_sim.time
+    %bm_sim.time
     % 7. Optional real-time slowdown
     SlowdownToRealtime(dt);
 
-    if (norm(arm1.dist_to_goal) < 1.0e-02 && ~arm1.grasped) && (norm(arm2.dist_to_goal) < 1.0e-02 && ~arm2.grasped)
+
+    if (norm(bm_sim.left_arm.dist_to_goal) < 1.0e-02 && ~bm_sim.left_arm.grasped) && (norm(bm_sim.right_arm.dist_to_goal) < 1.0e-02 && ~bm_sim.right_arm.grasped)
         actionManager.setCurrentAction("grasping"); 
-        arm1.grasped = true;
-        arm2.grasped = true;
+        disp(bm_sim.left_arm.tTo)
+        disp(bm_sim.right_arm.tTo)
+        bm_sim.left_arm.grasped = true;
+        bm_sim.right_arm.grasped = true;
         rigid_move_l.updateReference(bm_sim);
         rigid_move_r.updateReference(bm_sim);
     end
 
-    if (norm(arm1.dist_to_goal) < 1.0e-02 && ~arm1.o_reached) && (norm(arm2.dist_to_goal) < 1.0e-02 && ~arm2.o_reached)
+    if (norm(bm_sim.left_arm.dist_to_goal) < 1.0e-02 && ~bm_sim.left_arm.o_reached) && (norm(bm_sim.right_arm.dist_to_goal) < 1.0e-02 && ~bm_sim.right_arm.o_reached)
         actionManager.setCurrentAction("zero_vel"); 
-        arm1.o_reached = true;
-        arm2.o_reached = true;
+        disp(bm_sim.left_arm.tTo)
+        disp(bm_sim.right_arm.tTo)
+        bm_sim.left_arm.o_reached = true;
+        bm_sim.right_arm.o_reached = true;
     end
 end
 %Display joint position and velocity, Display for a given action, a number
