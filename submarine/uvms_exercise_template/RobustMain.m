@@ -71,8 +71,6 @@ for step = 1:sim.maxSteps
     % 1. Receive altitude from Unity
     robotModel.altitude = unity.receiveAltitude(robotModel);
 
-    %disp(robotModel.eta);
-
     [v_ang, v_lin] = CartError(robotModel.wTgv , robotModel.wTv);
     if norm(v_lin(1:2)) < trh && v_ang(3) < trh & ~first
         actionManager.setCurrentAction("landing");
@@ -100,7 +98,7 @@ for step = 1:sim.maxSteps
 
     % 6. Optional debug prints
     if mod(sim.loopCounter, round(1 / sim.dt)) == 0
-        fprintf('t = %.2f s\n', sim.time);
+        %fprintf('t = %.2f s\n', sim.time);
         fprintf('alt = %.2f m\n', robotModel.altitude);
     end
 
