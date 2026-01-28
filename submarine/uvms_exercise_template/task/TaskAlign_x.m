@@ -25,11 +25,7 @@ classdef TaskAlign_x < Task
             ang =  skew(xRv)*lin;
             obj.theta = atan2(norm(ang), dot(xRv,lin));
 
-            % if(obj.theta < 0)
-            %     obj.theta = 2* pi + obj.theta;
-            % end
-
-            obj.xdotbar = -0.4 * (0.1 - obj.theta);
+            obj.xdotbar = 0.4 * obj.theta;
             obj.xdotbar = Saturate(obj.xdotbar, 0.4);
         end
         function updateJacobian(obj, robot)

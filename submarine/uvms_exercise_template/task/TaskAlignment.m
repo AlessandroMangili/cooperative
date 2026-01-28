@@ -19,10 +19,6 @@ classdef TaskAlignment < Task
             
             obj.theta = atan2(norm(ang), dot(zR,[0;0;1]));
 
-            if(obj.theta<0)
-                obj.theta = 2*pi+obj.theta;
-            end
-
             obj.xdotbar = 0.6 * obj.theta;
             obj.xdotbar = Saturate(obj.xdotbar, 0.6);
         end
