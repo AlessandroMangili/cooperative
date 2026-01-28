@@ -21,7 +21,7 @@ classdef minimum_altitude_task < Task
         end
         
         function updateJacobian(obj,robot)
-            obj.J= robot.wJt(3,:);
+            obj.J= robot.wJt(6,:);
         end
 
         function updateActivation(obj, robot)
