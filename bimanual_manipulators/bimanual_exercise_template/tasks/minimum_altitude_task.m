@@ -23,7 +23,7 @@ classdef minimum_altitude_task < Task
 
             obj.altitude = robot.wTt(3,4);
             error = obj.desire_minimum_altitude - obj.altitude;
-            obj.xdotbar = 0.5 * error;
+            obj.xdotbar = 1.0 * error;
             obj.xdotbar = Saturate(obj.xdotbar, 0.3);
         end
         
@@ -36,15 +36,16 @@ classdef minimum_altitude_task < Task
             tool_jacobian=robot.wJt;
             
             if obj.ID=='L'
-                obj.J= [tool_jacobian(3,:), zeros(1,7)];
+                obj.J= [tool_jacobian(6,:), zeros(1,7)];
             elseif obj.ID=='R'
-                obj.J= [zeros(1,7), tool_jacobian(3,:)];
+                obj.J= [zeros(1,7), tool_jacobian(6,:)];
             end
         end
 
         function updateActivation(obj, robot_system)
+            obj.A = eye(6);
             th = obj.desire_minimum_altitude;
-            offset = 0.05;
+            offset = 0.1;
             obj.A = DecreasingBellShapedFunction(th, th+offset, 0, 1, obj.altitude);
         end
     end

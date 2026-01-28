@@ -22,7 +22,7 @@ classdef rigid_move_task < Task
             robot.dist_to_goal=v_lin;
             robot.rot_to_goal=v_ang;
          end
-         obj.xdotbar = 1.0 * [v_ang; v_lin];
+         obj.xdotbar = 0.5 * [v_ang; v_lin];
 
          obj.xdotbar(1:3) = Saturate(obj.xdotbar(1:3), 0.3);
          obj.xdotbar(4:6) = Saturate(obj.xdotbar(4:6), 0.3);

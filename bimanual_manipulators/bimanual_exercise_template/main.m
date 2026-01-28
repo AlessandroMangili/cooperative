@@ -7,7 +7,7 @@ addpath('./tasks')
 clc;clear;close all; 
 %Simulation Parameters
 dt = 0.005;
-end_time = 20;
+end_time = 30;
 
 % Initialize Franka Emika Panda Model
 model = load("panda.mat");
@@ -31,8 +31,9 @@ bm_sim=bimanual_sim(dt,arm1,arm2,end_time);
 
 %Define Object Shape and origin Frame
 obj_length = 0.10;
-%w_obj_pos = [0.5 0.0 0.59]';
-w_obj_pos = [0.5 0 0.59]';
+w_obj_pos = [0.5 0.0 0.59]';
+%w_obj_pos = [0.5 0.0 0.25]';
+%w_obj_pos = [0.5 -0.4 0.59]';
 w_obj_ori = rotation(0,0,0);
 
 %Set goal frames for left and right arm, based on object frame
@@ -119,7 +120,7 @@ for t = 0:dt:end_time
     % 5. Send updated state to Pybullet
     robot_udp.send(t,bm_sim)
 
-    %disp(arm1.wTt(3,4));
+    disp(arm1.wTt(3,4));
 
     % 6. Lggging
     logger.update(bm_sim.time,bm_sim.loopCounter)
