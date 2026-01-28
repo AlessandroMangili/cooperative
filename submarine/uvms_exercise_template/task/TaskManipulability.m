@@ -27,7 +27,6 @@ classdef TaskManipulability < Task
         
             obj.xdotbar = 0.4 * [dir_v(1); dir_v(2); 0];
 
-            %obj.xdotbar = -0.2 * obj.lin;
             % limit the requested velocities...
             obj.xdotbar(1:3) = Saturate(obj.xdotbar(1:3), 0.2);
         end
