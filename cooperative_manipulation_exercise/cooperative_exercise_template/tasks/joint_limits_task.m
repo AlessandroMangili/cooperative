@@ -25,7 +25,7 @@ classdef joint_limits_task < Task
                 end
             end
         
-            obj.xdotbar = Saturate(obj.xdotbar, obj.lambda);
+            obj.xdotbar = Saturate(obj.xdotbar, 0.3);
         end
         
         function updateJacobian(obj,robot)

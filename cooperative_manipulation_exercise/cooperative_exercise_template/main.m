@@ -60,8 +60,8 @@ joint_limits_l = joint_limits_task("jointLimitsLeft", joint_threshold);
 joint_limits_r = joint_limits_task("jointLimitsRight", joint_threshold);
 
 % set cooperative velocitities
-coop_vel_l = coop_rigid_grasp_task("coop_grasp_l");
-coop_vel_r = coop_rigid_grasp_task("coop_grasp_r");
+coop_vel_l = coop_rigid_grasp_task("GraspCoopLeft");
+coop_vel_r = coop_rigid_grasp_task("GraspCoopRight");
 
 % rigid grasp
 rigid_move_l = rigid_move_task("rigidMoveL");
@@ -97,18 +97,21 @@ actionManager_arm2.addAction(coop_right, "graspingRight");
 actionManager_arm2.addAction(zero_vel_right, "zeroVelRight");
 
 % Unifying sets left
-all_sets_left = {{coop_vel_l}, go_to_left, coop_left, zero_vel_left};
+all_sets_left = {go_to_left, coop_left, zero_vel_left};
 tasks_left = [all_sets_left{:}];
 [~, ia] = unique(string(cellfun(@(t) t.id, tasks_left, 'UniformOutput', false)), 'stable');
 unified_set_left = tasks_left(ia);
-actionManager_arm1.addUnifyingTasks(unified_set_left);
+unified_set_coop_left = [{coop_vel_l} unified_set_left(:)'];
+actionManager_arm1.addUnifyingTasks(unified_set_left, unified_set_coop_left);
+
 
 % Unifying sets right
-all_sets_right = {{coop_vel_r}, go_to_right, coop_right, zero_vel_right};
+all_sets_right = {go_to_right, coop_right, zero_vel_right};
 tasks_right = [all_sets_right{:}];
 [~, ia] = unique(string(cellfun(@(t) t.id, tasks_right, 'UniformOutput', false)), 'stable');
 unified_set_right = tasks_right(ia);
-actionManager_arm2.addUnifyingTasks(unified_set_right);
+unified_set_coop_right = [{coop_vel_r} unified_set_right(:)'];
+actionManager_arm2.addUnifyingTasks(unified_set_right, unified_set_coop_right);
 
 % set current action left
 actionManager_arm1.setCurrentAction("reachingLeft"); 
@@ -126,10 +129,13 @@ mu0 = 0.001;
 system_rigid_attached = false;
 
 %Initialize logger
-logger_left=SimulationLogger(ceil(end_time/dt)+1,coop_system.left_arm);
-logger_right=SimulationLogger(ceil(end_time/dt)+1,coop_system.right_arm);
+logger_left=SimulationLogger(ceil(end_time/dt)+1,coop_system.left_arm, actionManager_arm1);
+logger_right=SimulationLogger(ceil(end_time/dt)+1,coop_system.right_arm, actionManager_arm2);
 %Main simulation Loop
 for t = 0:dt:end_time
+    % switch cooperative actions
+    switch_coop_actions = false;
+
     % 1. Receive UDP packets - DO NOT EDIT
     [ql,qr]=robot_udp.udp_receive(t);
     if real_robot==true %Only in real setup, assign current robot configuration as initial configuratio
@@ -141,8 +147,8 @@ for t = 0:dt:end_time
     
     % 3. TO DO: compute the TPIK for each manipulator with your action
     % manager
-    [ql_dot_nocoop]=actionManager_arm1.computeICAT(coop_system.left_arm, dt);
-    [qr_dot_nocoop]=actionManager_arm2.computeICAT(coop_system.right_arm, dt);
+    [ql_dot_nocoop]=actionManager_arm1.computeICAT(coop_system.left_arm, switch_coop_actions, dt);
+    [qr_dot_nocoop]=actionManager_arm2.computeICAT(coop_system.right_arm, switch_coop_actions, dt);
     ql_dot = ql_dot_nocoop;
     qr_dot = qr_dot_nocoop;
 
@@ -153,6 +159,14 @@ for t = 0:dt:end_time
         coop_system.right_arm.grasped = true;
 
         system_rigid_attached = true;
+        rigid_move_l.updateReference(coop_system.left_arm);
+        rigid_move_r.updateReference(coop_system.right_arm);
+    end
+    if (norm(coop_system.left_arm.dist_to_goal) < threshold_goal && ~coop_system.left_arm.o_reached) && (norm(coop_system.right_arm.dist_to_goal) < threshold_goal && ~coop_system.right_arm.o_reached)
+        actionManager_arm1.setCurrentAction("zeroVelLeft");
+        actionManager_arm2.setCurrentAction("zeroVelRight");
+        coop_system.left_arm.o_reached = true;
+        coop_system.right_arm.o_reached = true;
     end
     if system_rigid_attached
         % RIGID BODY CONSTRAINT
@@ -194,10 +208,12 @@ for t = 0:dt:end_time
         coop_system.left_arm.xdot_coop_vel  = x_tilde_dot(1:6);
         coop_system.right_arm.xdot_coop_vel = x_tilde_dot(7:12);
 
+        switch_coop_actions = true;
+
         % 5. TO DO: compute the TPIK for each manipulator with your action
         % manager (with the constrained action to track the coop velocity)
-        [ql_dot] = actionManager_arm1.computeICAT(coop_system.left_arm, dt);
-        [qr_dot] = actionManager_arm2.computeICAT(coop_system.right_arm, dt);
+        [ql_dot] = actionManager_arm1.computeICAT(coop_system.left_arm, switch_coop_actions, dt);
+        [qr_dot] = actionManager_arm2.computeICAT(coop_system.right_arm, switch_coop_actions, dt);
     end
 
     % 6. get the two variables for integration

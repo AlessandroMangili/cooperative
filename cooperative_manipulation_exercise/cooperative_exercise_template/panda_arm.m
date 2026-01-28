@@ -3,6 +3,7 @@ classdef panda_arm < handle
 
     properties
         grasped
+        o_reached
         xdot_coop_vel     % vel coop
         %% Rigid Body Tree
         robot_model
@@ -69,6 +70,7 @@ classdef panda_arm < handle
             obj.wTt = obj.wTe * obj.eTt;
             
             obj.grasped = false;
+            obj.o_reached = false;
             obj.xdot_coop_vel = zeros(6,1);
         end
 

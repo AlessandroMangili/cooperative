@@ -6,10 +6,11 @@ classdef coop_rigid_grasp_task < Task
     methods
         function obj = coop_rigid_grasp_task(id)
             obj.id = id;
+            obj.A = zeros(6);  % per plot
         end
 
         function updateReference(obj, robot)
-            obj.xdotbar = -robot.xdot_coop_vel;
+            obj.xdotbar = robot.xdot_coop_vel; % ci va il più o il -?
         end
 
         function updateJacobian(obj, robot)

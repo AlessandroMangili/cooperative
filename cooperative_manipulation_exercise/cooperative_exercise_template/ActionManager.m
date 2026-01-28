@@ -3,6 +3,7 @@ classdef ActionManager < handle
         actions = {}      % cell array of actions (each action = stack of tasks)
         action_names = []     % names of actions
         unifying_actions
+        unifying_actions_coop
         currentAction = 1 % index of currently active action
         previousAction = []
         actionSwitchTime = 0
@@ -16,8 +17,9 @@ classdef ActionManager < handle
             obj.action_names{end+1} = action_name;
         end
 
-         function addUnifyingTasks(obj, unified_set)
+         function addUnifyingTasks(obj, unified_set, unified_set_coop)
             obj.unifying_actions = unified_set;
+            obj.unifying_actions_coop = unified_set_coop;
          end
 
         function setCurrentAction(obj, action_name)
@@ -37,10 +39,14 @@ classdef ActionManager < handle
             end
         end
 
-        function [ydotbar] = computeICAT(obj,bm_system, dt)
+        function [ydotbar] = computeICAT(obj,bm_system, coop, dt)
             obj.actionSwitchTime = obj.actionSwitchTime + dt;
 
-            tasks = obj.unifying_actions;
+            if ~coop
+                tasks = obj.unifying_actions;
+            else
+                tasks = obj.unifying_actions_coop;
+            end
             task_ids = [];
             for i = 1:length(tasks)
                 task_ids{i} = tasks{i}.id;
@@ -66,18 +72,22 @@ classdef ActionManager < handle
             inCurrent = ismember(string(task_ids), string(current_task_ids));
             inPrev    = ismember(string(task_ids), string(prev_task_ids));
 
+            if coop
+                inCurrent(1) = 1;
+                inPrev(1) = 1;
+            end
+
             for i = 1:length(tasks)
                 task = tasks{i};
                 task.updateReference(bm_system);
                 task.updateJacobian(bm_system);
                 task.updateActivation(bm_system);
 
-                %if (tasks{i}.id == "rigidMoveL" || tasks{i}.id == "rigidMoveR") && ~inCurrent(i)
-                %    alpha = 0;
-                %elseif (tasks{i}.id == "rigidMoveL" || tasks{i}.id == "rigidMoveR") && inCurrent(i)
-                %    alpha = 1;
-                %elseif inCurrent(i) && ~inPrev(i)
-                if inCurrent(i) && ~inPrev(i)
+                if (tasks{i}.id == "GraspCoopLeft" || tasks{i}.id == "GraspCoopRight") && ~inCurrent(i)
+                    alpha = 0;
+                elseif (tasks{i}.id == "GraspCoopLeft" || tasks{i}.id == "GraspCoopRight") && inCurrent(i)
+                    alpha = 1;
+                elseif inCurrent(i) && ~inPrev(i)
                     % entering → fade in
                     alpha = IncreasingBellShapedFunction(0, obj.transitionDuration, 0, 1, obj.actionSwitchTime);
                 elseif ~inCurrent(i) && inPrev(i)
