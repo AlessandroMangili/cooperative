@@ -11,8 +11,7 @@ classdef TaskVehicle < Task
 
         function updateReference(obj, robot)
             [ang, lin] = CartError(robot.wTgv , robot.wTv);
-            %obj.xdotbar = - 0.2 * robot.vTw(1:3,1:3) * lin;
-            v_ref = -0.4 * robot.vTw(1:3,1:3) * lin;
+            v_ref = -0.4 * lin;
             w_ref = -0.4 * ang;
         
             obj.xdotbar = [v_ref; w_ref];

@@ -35,7 +35,7 @@ classdef TaskAlign_x < Task
             ang =  skew(wRv(:,1)) * lin;
             ang = ang / norm(ang);
 
-            obj.J = ang'*[zeros(3,7) zeros(3,3), wRv];
+            obj.J = ang'*[zeros(3,7) zeros(3,3), eye(3)];
         end
         
         function updateActivation(obj, robot)
