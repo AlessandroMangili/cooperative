@@ -35,8 +35,8 @@ classdef TaskFixedBase < Task
             obj.xdotbar(1:3) = Saturate(obj.xdotbar(1:3), 0.2);
         end
         function updateJacobian(obj, robot)
-            Jt_a = zeros(3,7);           % braccio non contribuisce
-            Jt_v = [blkdiag(eye(2), 0) zeros(3, 3)];  %J of vehicle
+            Jt_a = zeros(3,7);
+            Jt_v = [blkdiag(eye(2), 0) zeros(3, 3)];
         
             obj.J = [Jt_a Jt_v];
         end

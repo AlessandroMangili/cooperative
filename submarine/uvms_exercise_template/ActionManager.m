@@ -1,17 +1,16 @@
 classdef ActionManager < handle
     properties
-        actions = {}      % cell array of actions (each action = stack of tasks)
-        action_names = []     % names of actions
-        unifying_actions = {}
-        currentAction = 1 % index of currently active action
-        previousAction = []
-        actionSwitchTime = 0
-        transitionDuration = 2.0
+         actions = {}             % cell array of actions (each action = stack of tasks)
+        action_names = []        % names of actions
+        unifying_actions         % unified list
+        currentAction = 1        % index of currently active action
+        previousAction = []      % set of the previous action
+        actionSwitchTime = 0     % action switch
+        transitionDuration = 2.0 % action transition
     end
 
     methods
         function addAction(obj, taskStack, action_name)
-            % taskStack: cell array of tasks that define an action
             obj.actions{end+1} = taskStack;
             obj.action_names{end+1} = action_name;
         end
@@ -21,9 +20,9 @@ classdef ActionManager < handle
          end
 
         function setCurrentAction(obj, action_name)
-            disp(['Seeking current action: ', action_name]);
             disp('Actions saved:');
             disp(obj.action_names);
+            disp(['Switching to current action: ', action_name]);
 
             idx = find([obj.action_names{:}] == action_name, 1);
             if isempty(idx)
@@ -63,8 +62,8 @@ classdef ActionManager < handle
                 prev_tasks = {};
             end
 
-            inCurrent = ismember(string(task_ids), string(current_task_ids));
-            inPrev    = ismember(string(task_ids), string(prev_task_ids));
+            in_current = ismember(string(task_ids), string(current_task_ids));
+            in_previous    = ismember(string(task_ids), string(prev_task_ids));
 
             for i = 1:length(tasks)
                 task = tasks{i};
@@ -72,16 +71,16 @@ classdef ActionManager < handle
                 task.updateJacobian(robot);
                 task.updateActivation(robot);
 
-                if inCurrent(i) && ~inPrev(i)
+                if in_current(i) && ~in_previous(i)
                     % entering → fade in
                     alpha = IncreasingBellShapedFunction(0, obj.transitionDuration, 0, 1, obj.actionSwitchTime);
-                elseif ~inCurrent(i) && inPrev(i)
+                elseif ~in_current(i) && in_previous(i)
                     % leaving → fade out
                     alpha = DecreasingBellShapedFunction(0, obj.transitionDuration, 0, 1, obj.actionSwitchTime);
-                elseif ~inCurrent(i) && ~inPrev(i)
+                elseif ~in_current(i) && ~in_previous(i)
                     % steady → normal activation
                     alpha = 0;
-                elseif inCurrent(i) && inPrev(i)
+                elseif in_current(i) && in_previous(i)
                     alpha = 1;
                 end
                 task.A = task.A * alpha;

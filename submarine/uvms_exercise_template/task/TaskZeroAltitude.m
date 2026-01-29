@@ -11,7 +11,6 @@ classdef TaskZeroAltitude < Task
         end
 
         function updateReference(obj, robot)
-            alt = 0;
             if (isempty(robot.altitude))
                 alt = 2;
             else

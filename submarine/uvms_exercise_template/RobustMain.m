@@ -38,15 +38,17 @@ actionManager.addAction(task_set_landing, "landing");                   % action
 actionManager.addAction(task_set_grasp, "grasping");                    % action 3
 
 % Unifying sets
-all_sets = {task_set_safe_navigation, task_set_landing, task_set_grasp};
-tasks = [all_sets{:}];
-[~, ia] = unique(string(cellfun(@(t) t.id, tasks, 'UniformOutput', false)), 'stable');
-unified_set = tasks(ia);
+% all_sets = {task_set_safe_navigation, task_set_landing, task_set_grasp};
+% tasks = [all_sets{:}];
+% [~, ia] = unique(string(cellfun(@(t) t.id, tasks, 'UniformOutput', false)), 'stable');
+% unified_set = tasks(ia);
+unified_set = {task_altitude, task_alignment, task_vehicle, task_align_x, task_manipulability, task_zero_altitude, ...
+    task_fixed_base, task_tool};
 actionManager.addUnifyingTasks(unified_set);
 
 % set current action
 actionManager.setCurrentAction("safe_navigation"); 
-
+w
 % Define desired positions and orientations (world frame)
 w_arm_goal_position = [12.2025, 37.3748, -39.8860]';
 w_arm_goal_orientation = [0, pi, pi/2];
@@ -54,6 +56,8 @@ w_arm_goal_orientation = [0, pi, pi/2];
 %w_vehicle_goal_position = [10.5 		37.5	   -38]';
 %w_vehicle_goal_position = [45 2 -33]';
 w_vehicle_goal_position = [10.5 37.5 -38]';
+%w_vehicle_goal_position = [14.5 37.5 -38]';
+%w_vehicle_goal_position = [8.5 37.5 -38]';
 w_vehicle_goal_orientation = [0, -0.06, 0.5];
 
 % Set goals in the robot model

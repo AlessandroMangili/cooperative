@@ -21,13 +21,10 @@ classdef TaskVehicle < Task
             obj.xdotbar(4:6) = Saturate(obj.xdotbar(4:6), 0.4);
         end
         function updateJacobian(obj, robot)
-            Jt_a = zeros(6,7);           % braccio non contribuisce
-            Jt_v = -eye(6);              % veicolo: 6 DoF
+            Jt_a = zeros(6,7);           
+            Jt_v = -eye(6);              
         
             obj.J = [Jt_a Jt_v];
-            %Jt_a  = zeros(3,7);            %J of arm
-            %Jt_v = [-eye(3) zeros(3, 3)];  %J of vehicle
-            %obj.J = [Jt_a Jt_v];
         end
         
         function updateActivation(obj, robot)
