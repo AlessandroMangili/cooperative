@@ -1,18 +1,17 @@
 classdef ActionManager < handle
     properties
-        actions = {}      % cell array of actions (each action = stack of tasks)
-        action_names = []     % names of actions
-        unifying_actions
-        unifying_actions_coop
-        currentAction = 1 % index of currently active action
-        previousAction = []
-        actionSwitchTime = 0
-        transitionDuration = 1.0
+        actions = {}             % cell array of actions (each action = stack of tasks)
+        action_names = []        % names of actions
+        unifying_actions         % unified list
+        unifying_actions_coop    % unified list coop
+        currentAction = 1        % index of currently active action
+        previousAction = []      % set of the previous action
+        actionSwitchTime = 0     % action switch
+        transitionDuration = 1.0 % action transition
     end
 
     methods
         function addAction(obj, taskStack, action_name)
-            % taskStack: cell array of tasks that define an action
             obj.actions{end+1} = taskStack;
             obj.action_names{end+1} = action_name;
         end
@@ -23,9 +22,9 @@ classdef ActionManager < handle
          end
 
         function setCurrentAction(obj, action_name)
-            disp(['Seeking current action: ', action_name]);
             disp('Actions saved:');
             disp(obj.action_names);
+            disp(['Switching to current action: ', action_name]);
 
             idx = find([obj.action_names{:}] == action_name, 1);
             if isempty(idx)
@@ -69,12 +68,12 @@ classdef ActionManager < handle
                 prev_tasks = {};
             end
 
-            inCurrent = ismember(string(task_ids), string(current_task_ids));
-            inPrev    = ismember(string(task_ids), string(prev_task_ids));
+            in_current = ismember(string(task_ids), string(current_task_ids));
+            in_previous    = ismember(string(task_ids), string(prev_task_ids));
 
             if coop
-                inCurrent(1) = 1;
-                inPrev(1) = 1;
+                in_current(1) = 1;
+                in_previous(1) = 1;
             end
 
             for i = 1:length(tasks)
@@ -83,29 +82,29 @@ classdef ActionManager < handle
                 task.updateJacobian(bm_system);
                 task.updateActivation(bm_system);
 
-                if (tasks{i}.id == "GraspCoopLeft" || tasks{i}.id == "GraspCoopRight") && ~inCurrent(i)
+                if (tasks{i}.id == "GraspCoopLeft" || tasks{i}.id == "GraspCoopRight") && ~in_current(i)
                     alpha = 0;
-                elseif (tasks{i}.id == "GraspCoopLeft" || tasks{i}.id == "GraspCoopRight") && inCurrent(i)
+                elseif (tasks{i}.id == "GraspCoopLeft" || tasks{i}.id == "GraspCoopRight") && in_current(i)
                     alpha = 1;
-                elseif inCurrent(i) && ~inPrev(i)
+                elseif in_current(i) && ~in_previous(i)
                     % entering → fade in
                     alpha = IncreasingBellShapedFunction(0, obj.transitionDuration, 0, 1, obj.actionSwitchTime);
-                elseif ~inCurrent(i) && inPrev(i)
+                elseif ~in_current(i) && in_previous(i)
                     % leaving → fade out
                     alpha = DecreasingBellShapedFunction(0, obj.transitionDuration, 0, 1, obj.actionSwitchTime);
-                elseif ~inCurrent(i) && ~inPrev(i)
+                elseif ~in_current(i) && ~in_previous(i)
                     % steady → normal activation
                     alpha = 0;
-                elseif inCurrent(i) && inPrev(i)
+                elseif in_current(i) && in_previous(i)
                     alpha = 1;
                 end
                 task.A = task.A * alpha;
             end
            
             %% 2. Perform ICAT (task-priority inverse kinematics) for the current Action
-            nJ = length(bm_system.q); % number of joints
-            ydotbar = zeros(nJ,1);
-            Qp = eye(nJ);
+            n = length(bm_system.q); % number of joints
+            ydotbar = zeros(n,1);
+            Qp = eye(n);
             for i = 1:length(tasks)
                  %% TRANSITION FROM PREVIOUS ACTION SET TO NEXT ACTION SET
                 [Qp, ydotbar] = iCAT_task(tasks{i}.A, tasks{i}.J, ...
@@ -113,7 +112,7 @@ classdef ActionManager < handle
                                            1e-4, 0.01, 10);
             end
             %% 3. Last task: residual damping
-            [~, ydotbar] = iCAT_task(eye(nJ), eye(nJ), Qp, ydotbar, zeros(nJ,1), 1e-4, 0.01, 10);
+            [~, ydotbar] = iCAT_task(eye(n), eye(n), Qp, ydotbar, zeros(n,1), 1e-4, 0.01, 10);
         end
     end
 end

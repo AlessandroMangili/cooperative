@@ -41,8 +41,7 @@ arm1.setGoal(w_obj_pos,w_obj_ori,[w_obj_pos(1) - obj_length/2; w_obj_pos(2:3)],r
 arm2.setGoal(w_obj_pos,w_obj_ori,[w_obj_pos(1) + obj_length/2; w_obj_pos(2:3)],rotation(0, pi+y_theta, 0));
 
 %Define Object goal frame (Cooperative Motion)
-%wTog=[rotation(0,0,0) [0.6, 0.4, 0.48]'; 0 0 0 1];
-wTog=[rotation(0,0,0) [0.7, 0.4, 0.48]'; 0 0 0 1];
+wTog=[rotation(0,0,0) [0.6, 0.4, 0.48]'; 0 0 0 1];
 arm1.set_obj_goal(wTog)
 arm2.set_obj_goal(wTog)
 
@@ -61,8 +60,8 @@ joint_limits_l = joint_limits_task("jointLimitsLeft", joint_threshold);
 joint_limits_r = joint_limits_task("jointLimitsRight", joint_threshold);
 
 % set cooperative velocitities
-coop_vel_l = coop_rigid_grasp_task("GraspCoopLeft");
-coop_vel_r = coop_rigid_grasp_task("GraspCoopRight");
+coop_vel_l = coop_movement_task("GraspCoopLeft");
+coop_vel_r = coop_movement_task("GraspCoopRight");
 
 % rigid grasp
 rigid_move_l = rigid_move_task("rigidMoveL");
@@ -98,19 +97,21 @@ actionManager_arm2.addAction(coop_right, "graspingRight");
 actionManager_arm2.addAction(zero_vel_right, "zeroVelRight");
 
 % Unifying sets left
-all_sets_left = {go_to_left, coop_left, zero_vel_left};
-tasks_left = [all_sets_left{:}];
-[~, ia] = unique(string(cellfun(@(t) t.id, tasks_left, 'UniformOutput', false)), 'stable');
-unified_set_left = tasks_left(ia);
+% all_sets_left = {go_to_left, coop_left, zero_vel_left};
+% tasks_left = [all_sets_left{:}];
+% [~, ia] = unique(string(cellfun(@(t) t.id, tasks_left, 'UniformOutput', false)), 'stable');
+% unified_set_left = tasks_left(ia);
+unified_set_left = {joint_limits_l, minimum_altitude_l, left_tool_task, rigid_move_l, zero_velocities_l};
 unified_set_coop_left = [{coop_vel_l} unified_set_left(:)'];
 actionManager_arm1.addUnifyingTasks(unified_set_left, unified_set_coop_left);
 
 
 % Unifying sets right
-all_sets_right = {go_to_right, coop_right, zero_vel_right};
-tasks_right = [all_sets_right{:}];
-[~, ia] = unique(string(cellfun(@(t) t.id, tasks_right, 'UniformOutput', false)), 'stable');
-unified_set_right = tasks_right(ia);
+% all_sets_right = {go_to_right, coop_right, zero_vel_right};
+% tasks_right = [all_sets_right{:}];
+% [~, ia] = unique(string(cellfun(@(t) t.id, tasks_right, 'UniformOutput', false)), 'stable');
+% unified_set_right = tasks_right(ia);
+unified_set_right = {joint_limits_r, minimum_altitude_r, right_tool_task, rigid_move_r, zero_velocities_r};
 unified_set_coop_right = [{coop_vel_r} unified_set_right(:)'];
 actionManager_arm2.addUnifyingTasks(unified_set_right, unified_set_coop_right);
 
@@ -126,7 +127,7 @@ robot_udp=UDP_interface(real_robot);
 threshold_goal = 1.0e-02;
 % Initial bias for cooperation weights
 mu0 = 0.001;
-%
+% rigid constraint
 system_rigid_attached = false;
 
 %Initialize logger
@@ -178,18 +179,18 @@ for t = 0:dt:end_time
         % SAVE THE NON COOPERATIVE VELOCITIES COMPUTED
         [v_ang, v_lin] = CartError(coop_system.left_arm.wTog, coop_system.left_arm.wTo);
         % Desired object velocity
-        xdot_ref_o = 1.0 * [v_ang; v_lin];
+        xdot_d = 1.0 * [v_ang; v_lin];
 
         % Desire tool velocity
-        xdot_left_t = coop_system.left_arm.wJo * ql_dot_nocoop;
-        xdot_right_t = coop_system.right_arm.wJo * qr_dot_nocoop;
+        xdot_al = coop_system.left_arm.wJo * ql_dot_nocoop;
+        xdot_ar = coop_system.right_arm.wJo * qr_dot_nocoop;
 
         % Compute weights        
-        mu_a = mu0 + norm(xdot_ref_o - xdot_left_t);
-        mu_b = mu0 + norm(xdot_ref_o - xdot_right_t);
+        mu_a = mu0 + norm(xdot_d - xdot_al);
+        mu_b = mu0 + norm(xdot_d - xdot_ar);
 
         % Weighted cooperative velocity (xhat_dot)
-        x_hat_dot = (mu_a*xdot_left_t + mu_b*xdot_right_t) / (mu_a + mu_b);
+        x_hat_dot = (mu_a*xdot_al + mu_b*xdot_ar) / (mu_a + mu_b);
 
         % Compute rigid grasp constraint and feasible space
         Jo_l = coop_system.left_arm.wJo;
@@ -199,8 +200,7 @@ for t = 0:dt:end_time
         Ha = Jo_l*pinv(Jo_l);
         Hb = Jo_r*pinv(Jo_r);
         C = [Ha -Hb];
-        Hab = [Ha zeros(6)
-              zeros(6) Hb];
+        Hab = [Ha zeros(6); zeros(6) Hb];
 
         % Project onto feasible subspace
         x_tilde_dot = Hab * (eye(12) - pinv(C)*C) * [x_hat_dot; x_hat_dot];
@@ -226,7 +226,18 @@ for t = 0:dt:end_time
     % 7. Loggging
     logger_left.update(coop_system.time,coop_system.loopCounter)
     logger_right.update(coop_system.time,coop_system.loopCounter)
-    coop_system.time
+    if mod(coop_system.loopCounter, round(1 / coop_system.dt)) == 0
+        fprintf('Time: %.2f s ------ left (alt): %.2f m right (alt): %.2f\n', coop_system.time, coop_system.left_arm.wTt(3,4), coop_system.right_arm.wTt(3,4));
+        if ~coop_system.left_arm.grasped
+            fprintf('Left linear distance to goal: %.2f and angular: %.2f\n', norm(coop_system.left_arm.dist_to_goal), norm(coop_system.left_arm.rot_to_goal));
+            fprintf('Right linear distance to goal: %.2f and angular: %.2f\n', norm(coop_system.right_arm.dist_to_goal), norm(coop_system.right_arm.rot_to_goal));
+        elseif coop_system.left_arm.grasped && ~coop_system.left_arm.o_reached
+            fprintf('Object linear distance to goal: %.2f and angular: %.2f\n', norm(coop_system.left_arm.dist_to_goal), norm(coop_system.left_arm.rot_to_goal));
+            [v_ang, v_lin] = CartError(coop_system.left_arm.wTt , coop_system.right_arm.wTt);
+            fprintf('Tool-Tool distance pose: %.2f\n', norm(v_lin))
+            fprintf('Tool-Tool distance angle: %.2f\n', norm(v_ang));
+        end
+    end
     % 8. Optional real-time slowdown
     SlowdownToRealtime(dt);
 end

@@ -2,14 +2,14 @@ classdef SimulationLogger < handle
     properties
         t            % time vector
         q            % joint positions
-        qdot        % joint velocities
+        qdot         % joint velocities
         a            % task activations (diagonal only)
         xdotbar_task % reference velocities for tasks (cell array)
         robot        % robot model
-        action_set     % set of actions
-        xdot            %End Effector velocity
-        tasks_set %% ADD
-        n
+        action_set   % set of actions
+        xdot         % End Effector velocity
+        tasks_set    % set of tasks
+        n            % lenght of tasks
     end
 
     methods
@@ -17,7 +17,6 @@ classdef SimulationLogger < handle
             obj.robot = robot;
             obj.action_set = action_set;
             obj.tasks_set = action_set.unifying_actions_coop;
-
 
             obj.t = zeros(1, maxLoops);
             obj.q = zeros(7, maxLoops);
