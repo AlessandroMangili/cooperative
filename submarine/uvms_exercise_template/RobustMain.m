@@ -8,7 +8,7 @@ clc; clear; close all;
 
 % Simulation parameters
 dt       = 0.005;
-endTime  = 70;
+endTime  = 80;
 % Initialize robot model and simulator
 robotModel = UvmsModel();          
 sim = UvmsSim(dt, robotModel, endTime);
@@ -62,7 +62,7 @@ robotModel.setGoal(w_arm_goal_position, w_arm_goal_orientation, w_vehicle_goal_p
 % Initialize the logger
 logger = SimulationLogger(ceil(endTime/dt)+1, robotModel, unified_set);
 
-trh = 0.25;
+trh = 0.20;
 first = false;
 second = false;
 
@@ -71,15 +71,15 @@ for step = 1:sim.maxSteps
     % 1. Receive altitude from Unity
     robotModel.altitude = unity.receiveAltitude(robotModel);
 
-    [v_ang, v_lin] = CartError(robotModel.wTgv , robotModel.wTv);
-    if norm(v_lin(1:2)) < trh && v_ang(3) < trh & ~first
+    [v_ang, v_lin_first] = CartError(robotModel.wTgv , robotModel.wTv);
+    if norm(v_lin_first(1:2)) < trh && v_ang(3) < trh & ~first
         actionManager.setCurrentAction("landing");
         first = true;
     end
 
     wTb = robotModel.wTv * robotModel.vTb;
-    [~, v_lin] = CartError(robotModel.wTg , wTb);
-    if ~isempty(robotModel.altitude) && robotModel.altitude <= 0.001 && ~second && first && norm(v_lin) <  arm_length * 0.8
+    [~, v_lin_second] = CartError(robotModel.wTg , wTb);
+    if ~isempty(robotModel.altitude) && robotModel.altitude <= 0.001 && ~second && first && norm(v_lin_second(1:2)) <  arm_length * 0.8
         actionManager.setCurrentAction("grasping");
         second = true;
     end
@@ -94,12 +94,19 @@ for step = 1:sim.maxSteps
     unity.send(robotModel);
 
     % 5. Logging
-    logger.update(sim.time, sim.loopCounter);
+    logger.update(sim.time, sim.loopCounter, robotModel.altitude, norm(v_lin_second(1:2)));
 
     % 6. Optional debug prints
     if mod(sim.loopCounter, round(1 / sim.dt)) == 0
-        %fprintf('t = %.2f s\n', sim.time);
-        fprintf('alt = %.2f m\n', robotModel.altitude);
+        fprintf('Time: %.2f s ------ Altitude: %.2f m\n', sim.time, robotModel.altitude);
+        if ~first
+            fprintf('Linear distance to goal: %.2f and the angular: %.2f\n', norm(v_lin_first(1:2)), v_ang(3));
+        elseif first && ~second
+            fprintf('Linear distance to goal: %.2f with the threshold between: (%.2f - %.2f)\n', norm(v_lin_second(1:2)),  arm_length * 0.6, arm_length * 0.8);
+        else
+            [v_ang, v_lin] = CartError(robotModel.vTg , robotModel.vTt);
+            fprintf('Linear distance to goal: %.2f and the angular: %.2f\n', norm(v_lin), norm(v_ang));
+        end
     end
 
     % 7. Optional real-time slowdown

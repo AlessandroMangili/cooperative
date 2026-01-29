@@ -9,6 +9,8 @@ classdef SimulationLogger < handle
         xdotbar_task % reference velocities for tasks (cell array)
         robot        % robot model
         task_set     % set of tasks
+        altitude     % altitude
+        distance     % distance between base frame and object goal
     end
 
     methods
@@ -22,6 +24,9 @@ classdef SimulationLogger < handle
             obj.eta = zeros(6, maxLoops);
             obj.v_nu = zeros(6, maxLoops);
 
+            obj.altitude = zeros(1, maxLoops);
+            obj.distance = zeros(1, maxLoops);
+
             % Store the diagonal of each activation matrix
             %maxDiagSize = max(cellfun(@(t) size(t.A,1), task_set));
             %obj.a = zeros(maxDiagSize, maxLoops, length(task_set));
@@ -31,13 +36,20 @@ classdef SimulationLogger < handle
             obj.xdotbar_task = cell(length(task_set), maxLoops);
         end
 
-        function update(obj, t, loop)
+        function update(obj, t, loop, altitude, distance)
             % Store robot state
             obj.t(loop) = t;
             obj.q(:, loop) = obj.robot.q;
             obj.q_dot(:, loop) = obj.robot.q_dot;
             obj.eta(:, loop) = obj.robot.eta;
             obj.v_nu(:, loop) = obj.robot.v_nu;
+
+            alt = altitude;
+            if isempty(alt)
+                alt = 0;
+            end
+            obj.altitude(loop) = alt;
+            obj.distance(loop) = distance;
 
             % Store task activations (diagonal only) and reference velocities
             % for i = 1:length(obj.task_set)
@@ -95,6 +107,14 @@ classdef SimulationLogger < handle
                 plot(obj.t, squeeze(obj.a(:, :, i))', 'LineWidth', 1, 'Color', colors(i,:));
                 title(sprintf('Task: %s Activations (diagonal)', obj.task_set{i}.id));
             end
+
+            figure(4)
+            hold on
+            plot(obj.t, obj.altitude, 'LineWidth', 1, 'Color', 'blue');
+            plot(obj.t, obj.distance, 'LineWidth', 1, 'Color', 'red');
+            hold off
+            legend('altitude', 'base distance wrt object goal');
+            
         end
     end
 end
