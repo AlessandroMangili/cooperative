@@ -7,7 +7,7 @@ addpath('./tasks')
 clc;clear;close all; 
 %Simulation Parameters
 dt = 0.005;
-end_time = 20;
+end_time = 15;
 
 % Initialize Franka Emika Panda Model
 model = load("panda.mat");
@@ -43,9 +43,10 @@ arm1.setGoal(w_obj_pos,w_obj_ori, [w_obj_pos(1) - obj_length/2; w_obj_pos(2:3)],
 arm2.setGoal(w_obj_pos,w_obj_ori, [w_obj_pos(1) + obj_length/2; w_obj_pos(2:3)],rotation(0, pi+y_theta, 0));
 
 %Define Object goal frame (Cooperative Motion)
-%wTog=[rotation(0,0,0) [0.65, -0.35, 0.28]'; 0 0 0 1];
-%wTog=[rotation(0,0,0) [-0.6, 0.3, 0.4]'; 0 0 0 1]; %STRESS ANDRE SX
-wTog=[rotation(0,0,0) [1.2, -0.3, 0.4]'; 0 0 0 1];  %STRESS ANDRE DX
+wTog=[rotation(0,0,0) [0.65, -0.35, 0.28]'; 0 0 0 1];
+%wTog=[rotation(0,0,0) [0, 0, 0.35]'; 0 0 0 1]; 
+%wTog=[rotation(0,0,0) [0, 0.4, 0.35]'; 0 0 0 1]; 
+%wTog=[rotation(0,0,0) [1.2, -0.3, 0.4]'; 0 0 0 1]; 
 arm1.set_obj_goal(wTog)
 arm2.set_obj_goal(wTog)
 
@@ -60,7 +61,7 @@ minimum_altitude_l = minimum_altitude_task("L", "LT", threshold_altitude, "altit
 minimum_altitude_r = minimum_altitude_task("R", "RT", threshold_altitude, "altitudeRight");
 
 % joint limits
-joint_threshold = 0.2;
+joint_threshold = 0.25;
 joint_limits_l = joint_limits_task("L", "LT", "jointLimitsLeft", joint_threshold);
 joint_limits_r = joint_limits_task("R", "RT", "jointLimitsRight", joint_threshold);
 
@@ -87,10 +88,12 @@ actionManager.addAction(coop, "grasping");
 actionManager.addAction(zero_vel, "zero_vel");
 
 % Unifying sets
-all_sets = {go_to, coop, zero_vel};
-tasks = [all_sets{:}];
-[~, ia] = unique(string(cellfun(@(t) t.id, tasks, 'UniformOutput', false)), 'stable');
-unified_set = tasks(ia);
+% all_sets = {{rigid_grasp} go_to, coop, zero_vel};
+% tasks = [all_sets{:}];
+% [~, ia] = unique(string(cellfun(@(t) t.id, tasks, 'UniformOutput', false)), 'stable');
+% unified_set = tasks(ia);
+unified_set = {rigid_grasp, joint_limits_l, joint_limits_r, minimum_altitude_l, minimum_altitude_r, left_tool_task, ...
+    right_tool_task, rigid_move_l, rigid_move_r, zero_velocities_l, zero_velocities_r};
 actionManager.addUnifyingTasks(unified_set);
 
 % set current action
@@ -101,6 +104,9 @@ robot_udp=UDP_interface(real_robot);
 
 %Initialize logger
 logger=SimulationLogger(ceil(end_time/dt)+1,bm_sim,actionManager);
+
+% THRESHOLD REACH THE GOAL
+threshold_goal = 1.0e-02;
 
 %Main simulation Loop
 for t = 0:dt:end_time
@@ -122,32 +128,36 @@ for t = 0:dt:end_time
     % 5. Send updated state to Pybullet
     robot_udp.send(t,bm_sim)
 
-    %disp(bm_sim.left_arm.wTt(3,4));
-
-    % 6. Lggging
-    logger.update(bm_sim.time,bm_sim.loopCounter)
-    %bm_sim.time
-    % 7. Optional real-time slowdown
-    SlowdownToRealtime(dt);
-
-
-    if (norm(bm_sim.left_arm.dist_to_goal) < 1.0e-02 && ~bm_sim.left_arm.grasped) && (norm(bm_sim.right_arm.dist_to_goal) < 1.0e-02 && ~bm_sim.right_arm.grasped)
+    if (norm(bm_sim.left_arm.dist_to_goal) < threshold_goal && ~bm_sim.left_arm.grasped) && (norm(bm_sim.right_arm.dist_to_goal) < threshold_goal && ~bm_sim.right_arm.grasped)
         actionManager.setCurrentAction("grasping"); 
-        disp(bm_sim.left_arm.tTo)
-        disp(bm_sim.right_arm.tTo)
         bm_sim.left_arm.grasped = true;
         bm_sim.right_arm.grasped = true;
         rigid_move_l.updateReference(bm_sim);
         rigid_move_r.updateReference(bm_sim);
     end
 
-    if (norm(bm_sim.left_arm.dist_to_goal) < 1.0e-02 && ~bm_sim.left_arm.o_reached) && (norm(bm_sim.right_arm.dist_to_goal) < 1.0e-02 && ~bm_sim.right_arm.o_reached)
+    if (norm(bm_sim.left_arm.dist_to_goal) < threshold_goal && ~bm_sim.left_arm.o_reached) && (norm(bm_sim.right_arm.dist_to_goal) < threshold_goal && ~bm_sim.right_arm.o_reached)
         actionManager.setCurrentAction("zero_vel"); 
-        disp(bm_sim.left_arm.tTo)
-        disp(bm_sim.right_arm.tTo)
         bm_sim.left_arm.o_reached = true;
         bm_sim.right_arm.o_reached = true;
     end
+
+    % 6. Lggging
+    [v_ang, v_lin] = CartError(bm_sim.left_arm.wTt , bm_sim.right_arm.wTt);
+    logger.update(bm_sim.time,bm_sim.loopCounter, norm(v_lin))
+    if mod(bm_sim.loopCounter, round(1 / bm_sim.dt)) == 0
+        fprintf('Time: %.2f s ------ left (alt): %.2f m right (alt): %.2f\n', bm_sim.time, bm_sim.left_arm.wTt(3,4), bm_sim.right_arm.wTt(3,4));
+        if ~bm_sim.left_arm.grasped
+            fprintf('Left linear distance to goal: %.2f and angular: %.2f\n', norm(bm_sim.left_arm.dist_to_goal), norm(bm_sim.left_arm.rot_to_goal));
+            fprintf('Right linear distance to goal: %.2f and angular: %.2f\n', norm(bm_sim.right_arm.dist_to_goal), norm(bm_sim.right_arm.rot_to_goal));
+        elseif bm_sim.left_arm.grasped && ~bm_sim.left_arm.o_reached
+            fprintf('Object linear distance to goal: %.2f and angular: %.2f\n', norm(bm_sim.left_arm.dist_to_goal), norm(bm_sim.left_arm.rot_to_goal));
+            fprintf('Tool-Tool distance pose: %.2f\n', norm(v_lin))
+            fprintf('Tool-Tool distance angle: %.2f\n', norm(v_ang));
+        end
+    end
+    % 7. Optional real-time slowdown
+    SlowdownToRealtime(dt);
 end
 %Display joint position and velocity, Display for a given action, a number
 %of tasks

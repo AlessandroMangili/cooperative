@@ -5,6 +5,7 @@ classdef panda_arm < handle
         %% FLAGs
         grasped
         o_reached
+        xdot_d      % for plot
         %% Rigid Body Tree
         robot_model
         %% --- State variables ---
@@ -70,6 +71,7 @@ classdef panda_arm < handle
 
             obj.grasped = false;
             obj.o_reached = false;
+            obj.xdot_d = zeros(6,1);
         end
 
         function setGoal(obj,obj_position,obj_orientation,arm_dist_offset,arm_rot_offset)

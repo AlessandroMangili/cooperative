@@ -26,6 +26,7 @@ classdef rigid_move_task < Task
 
          obj.xdotbar(1:3) = Saturate(obj.xdotbar(1:3), 0.3);
          obj.xdotbar(4:6) = Saturate(obj.xdotbar(4:6), 0.3);
+         robot.xdot_d = obj.xdotbar;
         end
         
         function updateJacobian(obj,robot_system)

@@ -1,16 +1,20 @@
 classdef SimulationLogger < handle
     properties
         t            % time vector
-        ql            % joint positions
+        ql           % joint positions
         qdotl        % joint velocities
-        qr            % joint positions
+        qr           % joint positions
         qdotr        % joint velocities
         a            % task activations (diagonal only)
         xdotbar_task % reference velocities for tasks (cell array)
         robot        % robot model
-        action_set     % set of actions
-        tasks_set %% ADD
-        n
+        action_set   % action manager
+        tasks_set    % set of tasks
+        n            % lenght of tasks
+        distance_t   % distance between tools
+        xdot_al      % xdot actual left
+        xdot_ar      % xdot actual right
+        xdot_dl      % xdot desired left
     end
 
     methods
@@ -25,6 +29,11 @@ classdef SimulationLogger < handle
             obj.qr = zeros(7, maxLoops);
             obj.qdotr = zeros(7, maxLoops);
             obj.n=length(action_set.actions);
+            obj.distance_t =  zeros(1, maxLoops);
+            obj.xdot_al = zeros(6, maxLoops);
+            obj.xdot_ar = zeros(6, maxLoops);
+            obj.xdot_dl = zeros(6, maxLoops);
+
             % l=zeros(1,obj.n);
             % for i=1:obj.n
             %     l(i)=length(action_set.actions{i});
@@ -35,13 +44,15 @@ classdef SimulationLogger < handle
             obj.a = zeros(7, maxLoops, length(obj.tasks_set));
         end
 
-        function update(obj, t, loop)
+        function update(obj, t, loop, distance)
             % Store robot state
             obj.t(loop) = t;
             obj.ql(:, loop) = obj.robot.left_arm.q;
             obj.qdotl(:, loop) = obj.robot.left_arm.qdot;
             obj.qr(:, loop) = obj.robot.right_arm.q;
             obj.qdotr(:, loop) = obj.robot.right_arm.qdot;
+            obj.distance_t(loop) = distance;
+
             %Store task reference velocities
             % for i=1:obj.n
             %     for j=1:length(obj.action_set.actions{i})
@@ -49,6 +60,16 @@ classdef SimulationLogger < handle
             %     end
             % end
 
+             if ~obj.robot.left_arm.grasped
+                Jl = obj.robot.left_arm.wJt;
+                Jr = obj.robot.right_arm.wJt;
+            elseif obj.robot.left_arm.grasped
+                Jl = obj.robot.left_arm.wJo;
+                Jr = obj.robot.right_arm.wJo;
+            end
+            obj.xdot_al(:,loop) = Jl * obj.robot.left_arm.qdot;
+            obj.xdot_ar(:,loop) = Jr * obj.robot.right_arm.qdot;
+            obj.xdot_dl(:,loop) = obj.robot.left_arm.xdot_d;
 
             % modified plot
             for i = 1:length(obj.tasks_set)
@@ -93,7 +114,7 @@ classdef SimulationLogger < handle
                 plot(obj.t, obj.qdotr, 'LineWidth', 2);
                 legend('qd_1','qd_2','qd_3','qd_4','qd_5','qd_6','qd_7');
 
-                % ADD
+                % Activations
                 colors = lines(size(obj.a,3));
                 figure(3);
                 for i = 1:size(obj.a,3)
@@ -101,6 +122,10 @@ classdef SimulationLogger < handle
                     plot(obj.t, squeeze(obj.a(:, :, i))', 'LineWidth', 1, 'Color', colors(i,:));
                     title(sprintf('Task: %s Activations (diagonal)', obj.tasks_set{i}.id));
                 end
+
+                figure(4);
+                plot(obj.t, obj.distance_t, 'LineWidth', 2);
+                legend('tool ditance');
 
                 % Optional: plot a number of tasks from an specific action set
                 % figure(3);
@@ -117,6 +142,42 @@ classdef SimulationLogger < handle
                 %     end
                 %     title([strcat('Robot'," ",obj.action_set.actions{action}{task(i)}.ID," ",'Task'," ",num2str(task(i))," ",obj.action_set.actions{action}{task(i)}.task_name)]);
                 % end
+
+                
+    
+                figure('Name', 'Plot velocities');            
+                titles = {'\omega_x', '\omega_y', '\omega_z', 'v_x', 'v_y', 'v_z'};
+                
+                for i = 1:6
+                        if i <= 3
+                        pos = (i-1)*2 + 1;   % 1,3,5
+                    else
+                        pos = (i-4)*2 + 2;   % 2,4,6
+                    end
+                    %subplot(3, 2, i);
+                    ax = subplot(3,2,pos);
+                    hold(ax, 'on');
+                    %hold on;
+                    % 1. Desired Object Velocity (Reference)
+                    h1 = plot(obj.t, obj.xdot_dl(i, :), 'k', 'LineWidth', 2);
+                    
+                    % 2. left arm
+                    h2 = plot(obj.t, obj.xdot_al(i, :), 'g', 'LineWidth', 2);
+                    
+                    % 3. right arm
+                    h3 = plot(obj.t, obj.xdot_ar(i, :), 'r', 'LineWidth', 2, 'LineStyle', '--');
+                    
+                    ylabel(titles{i});
+                    grid on;
+                    
+                    % Add vertical bars/background to indicate Phase 2 (Cooperation)
+                    % Assuming Phase 2 is roughly between t=2 and t=8 (adjust based on your sim)
+                    %xline(3.18, '--y', 'Start Coop'); 
+                    
+                    if i == 4
+                        legend([h1, h2, h3], 'Desired object vel', 'left-arm', 'right-arm');
+                    end
+                end
             end
 
     end
