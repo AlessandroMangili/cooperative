@@ -10,6 +10,10 @@ classdef SimulationLogger < handle
         xdot         % End Effector velocity
         tasks_set    % set of tasks
         n            % lenght of tasks
+        xdot_d       % desired object velocity
+        xdot_nc      % non-coop cart vel
+        xdot_a       % coop vel
+        distance_t   % distance between tools
     end
 
     methods
@@ -24,6 +28,12 @@ classdef SimulationLogger < handle
             %Optional: plot the end-effector velocities
             obj.xdot=zeros(6,maxLoops);
             obj.n=length(obj.tasks_set);
+
+            obj.distance_t =  zeros(1, maxLoops);
+
+            obj.xdot_d = zeros(6, maxLoops);
+            obj.xdot_nc = zeros(6, maxLoops);
+            obj.a = zeros(6, maxLoops);
             % l=zeros(1,obj.n);
             % for i=1:obj.n
             %     l(i)=length(action_set.actions{i});
@@ -35,11 +45,17 @@ classdef SimulationLogger < handle
             
         end
 
-        function update(obj, t, loop)
+        function update(obj, t, loop, xdot_d, xdot_nc, distance)
             % Store robot state
             obj.t(loop) = t;
             obj.q(:, loop) = obj.robot.q;
             obj.qdot(:, loop) = obj.robot.qdot;
+
+            obj.distance_t(loop) = distance;
+
+            obj.xdot_d(:, loop) = xdot_d;
+            obj.xdot_nc(:, loop) = xdot_nc;
+            obj.xdot_a(:, loop) = obj.robot.xdot_coop_vel;
             
              % modified plot
             for i = 1:length(obj.tasks_set)
@@ -88,6 +104,37 @@ classdef SimulationLogger < handle
                     subplot(size(obj.a,3),1,i);
                     plot(obj.t, squeeze(obj.a(:, :, i))', 'LineWidth', 1, 'Color', colors(i,:));
                     title(sprintf('Task: %s Activations (diagonal)', obj.tasks_set{i}.id));
+                end
+
+                figure(4);
+                plot(obj.t, obj.distance_t, 'LineWidth', 2);
+                legend('tool ditance');
+
+                figure('Name', 'Plot velocities');            
+                titles = {'\omega_x', '\omega_y', '\omega_z', 'v_x', 'v_y', 'v_z'};
+
+                for i = 1:6
+                    if i <= 3
+                        pos = (i-1)*2 + 1;
+                    else
+                        pos = (i-4)*2 + 2;
+                    end
+                    %subplot(3, 2, i);
+                    ax = subplot(3,2,pos);
+                    hold(ax, 'on');
+                    %hold on;
+                    h1 = plot(obj.t, obj.xdot_d(i, :), 'r', 'LineWidth', 2);
+
+                    h2 = plot(obj.t, obj.xdot_nc(i, :), 'g', 'LineWidth', 2);
+
+                    h3 = plot(obj.t, obj.xdot_a(i, :), 'b', 'LineWidth', 2, 'LineStyle', '--');
+
+                    ylabel(titles{i});
+                    grid on;
+
+                    if i == 4
+                        legend([h1, h2, h3], 'desired object vel', 'non copperative vel', 'cooperative vel');
+                    end
                 end
 
             end

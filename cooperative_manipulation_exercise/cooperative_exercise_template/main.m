@@ -105,7 +105,6 @@ unified_set_left = {joint_limits_l, minimum_altitude_l, left_tool_task, rigid_mo
 unified_set_coop_left = [{coop_vel_l} unified_set_left(:)'];
 actionManager_arm1.addUnifyingTasks(unified_set_left, unified_set_coop_left);
 
-
 % Unifying sets right
 % all_sets_right = {go_to_right, coop_right, zero_vel_right};
 % tasks_right = [all_sets_right{:}];
@@ -129,6 +128,10 @@ threshold_goal = 1.0e-02;
 mu0 = 0.001;
 % rigid constraint
 system_rigid_attached = false;
+
+xdot_al = zeros(6,1);
+xdot_ar = zeros(6,1);
+xdot_d = zeros(6,1);
 
 %Initialize logger
 logger_left=SimulationLogger(ceil(end_time/dt)+1,coop_system.left_arm, actionManager_arm1);
@@ -221,11 +224,12 @@ for t = 0:dt:end_time
     coop_system.sim(ql_dot,qr_dot);
     
     % 6. Send updated state to Pybullet
-    robot_udp.send(t,coop_system)
+    robot_udp.send(t,coop_system);
 
     % 7. Loggging
-    logger_left.update(coop_system.time,coop_system.loopCounter)
-    logger_right.update(coop_system.time,coop_system.loopCounter)
+    [~, v_lin] = CartError(coop_system.left_arm.wTt , coop_system.right_arm.wTt);
+    logger_left.update(coop_system.time,coop_system.loopCounter, xdot_d, xdot_al, norm(v_lin));
+    logger_right.update(coop_system.time,coop_system.loopCounter, xdot_d, xdot_ar, norm(v_lin));
     if mod(coop_system.loopCounter, round(1 / coop_system.dt)) == 0
         fprintf('Time: %.2f s ------ left (alt): %.2f m right (alt): %.2f\n', coop_system.time, coop_system.left_arm.wTt(3,4), coop_system.right_arm.wTt(3,4));
         if ~coop_system.left_arm.grasped
