@@ -62,13 +62,10 @@ classdef SimulationLogger < handle
                 A = obj.tasks_set{i}.A;
 
                 if isscalar(A)
-                    % Task scalare → replica su 6 DOF
                     diagA = repmat(A, 7, 1);
                 else
-                    % Task vettoriale → usa la diagonale
                     diagA = diag(A);
             
-                    % (opzionale) sicurezza: forzi comunque a 6
                     if length(diagA) < 7
                         diagA(end+1:7, 1) = diagA(end);
                     elseif length(diagA) > 7

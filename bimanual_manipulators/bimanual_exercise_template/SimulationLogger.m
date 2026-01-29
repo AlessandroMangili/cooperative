@@ -75,13 +75,10 @@ classdef SimulationLogger < handle
             for i = 1:length(obj.tasks_set)
                 A = obj.tasks_set{i}.A;
                 if isscalar(A)
-                    % Task scalare → replica su 6 DOF
                     diagA = repmat(A, 7, 1);
                 else
-                    % Task vettoriale → usa la diagonale
                     diagA = diag(A);
             
-                    % (opzionale) sicurezza: forzi comunque a 6
                     if length(diagA) < 7
                         diagA(end+1:7, 1) = diagA(end);
                     elseif length(diagA) > 7
@@ -149,7 +146,7 @@ classdef SimulationLogger < handle
                 titles = {'\omega_x', '\omega_y', '\omega_z', 'v_x', 'v_y', 'v_z'};
                 
                 for i = 1:6
-                        if i <= 3
+                    if i <= 3
                         pos = (i-1)*2 + 1;   % 1,3,5
                     else
                         pos = (i-4)*2 + 2;   % 2,4,6
@@ -158,21 +155,15 @@ classdef SimulationLogger < handle
                     ax = subplot(3,2,pos);
                     hold(ax, 'on');
                     %hold on;
-                    % 1. Desired Object Velocity (Reference)
                     h1 = plot(obj.t, obj.xdot_dl(i, :), 'k', 'LineWidth', 2);
                     
-                    % 2. left arm
                     h2 = plot(obj.t, obj.xdot_al(i, :), 'g', 'LineWidth', 2);
-                    
-                    % 3. right arm
+                   
                     h3 = plot(obj.t, obj.xdot_ar(i, :), 'r', 'LineWidth', 2, 'LineStyle', '--');
                     
                     ylabel(titles{i});
                     grid on;
                     
-                    % Add vertical bars/background to indicate Phase 2 (Cooperation)
-                    % Assuming Phase 2 is roughly between t=2 and t=8 (adjust based on your sim)
-                    %xline(3.18, '--y', 'Start Coop'); 
                     
                     if i == 4
                         legend([h1, h2, h3], 'Desired object vel', 'left-arm', 'right-arm');
