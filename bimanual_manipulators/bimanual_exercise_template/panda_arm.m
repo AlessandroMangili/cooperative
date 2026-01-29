@@ -89,7 +89,7 @@ classdef panda_arm < handle
             % Compute forward kinematics of the robot
             obj.bTe=getTransform(obj.robot_model.franka,[obj.q',0,0],'panda_link7');
             obj.wTe=obj.wTb*obj.bTe;
-            obj.wTt =obj.wTe*obj.eTt; % missing eTt
+            obj.wTt =obj.wTe*obj.eTt;
             
             if ~obj.grasped
                 obj.tTo = pinv(obj.wTt)*obj.wTo;
@@ -105,11 +105,6 @@ classdef panda_arm < handle
             Ste = [eye(3) zeros(3); -skew(obj.wTe(1:3,1:3)*obj.eTt(1:3,4)) eye(3)];
             obj.wJt = Ste * [obj.wTb(1:3,1:3) zeros(3,3); zeros(3,3) obj.wTb(1:3,1:3)] * bJe(:, 1:7);
             
-            %R = obj.tTo(1:3,1:3);
-            %p = obj.tTo(1:3,4);
-            %Sot = [ R, zeros(3); -skew(p)*R, R ];
-            
-            %Sot = [eye(3) zeros(3); -skew(obj.tTo(1:3,4)) eye(3)];
             Sot = [eye(3) zeros(3); skew(obj.wTt(1:3,1:3)*obj.tTo(1:3,4))' eye(3)];
             obj.wJo = Sot * obj.wJt;
         end

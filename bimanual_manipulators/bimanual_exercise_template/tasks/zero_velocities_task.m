@@ -1,5 +1,4 @@
 classdef zero_velocities_task < Task   
-    %Tool position control for a single arm
     properties
         id;
     end

@@ -1,5 +1,4 @@
 classdef joint_limits_task < Task   
-    %Tool position control for a single arm
     properties
         threshold;
         lambda = 0.5
@@ -59,8 +58,6 @@ classdef joint_limits_task < Task
             end
 
             obj.A = eye(7);
-
-            %threshold_activation = 0.2;
 
             for i = 1:7
                 obj.A(i,i) = DecreasingBellShapedFunction(robot.jlmin(i), robot.jlmin(i)+obj.threshold, 0, 1, robot.q(i)) ...
