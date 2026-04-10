@@ -13,8 +13,8 @@ classdef rigid_grasp_task < Task
         end
         
         function updateJacobian(obj, robot_system)        
-            J_L = robot_system.left_arm.wJt;  
-            J_R = robot_system.right_arm.wJt;              
+            J_L = robot_system.left_arm.wJo;  
+            J_R = robot_system.right_arm.wJo;              
             obj.J = [J_L, -J_R];
         end
         

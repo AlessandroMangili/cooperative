@@ -28,7 +28,7 @@ task_fixed_base = TaskFixedBase("fixedBase", arm_length);
 task_manipulability = TaskManipulability("manipulability", arm_length);
 
 task_set_safe_navigation = {task_altitude, task_alignment, task_vehicle};
-task_set_landing = {task_alignment, task_align_x, task_manipulability, task_zero_altitude};
+task_set_landing = {task_alignment, task_align_x, task_zero_altitude};
 task_set_grasp = {task_zero_altitude, task_fixed_base, task_tool};             
 
 % Define actions and add to ActionManager
@@ -42,13 +42,13 @@ actionManager.addAction(task_set_grasp, "grasping");                    % action
 % tasks = [all_sets{:}];
 % [~, ia] = unique(string(cellfun(@(t) t.id, tasks, 'UniformOutput', false)), 'stable');
 % unified_set = tasks(ia);
-unified_set = {task_altitude, task_alignment, task_vehicle, task_align_x, task_manipulability, task_zero_altitude, ...
+unified_set = {task_altitude, task_alignment, task_vehicle, task_align_x, task_zero_altitude, ...
     task_fixed_base, task_tool};
 actionManager.addUnifyingTasks(unified_set);
 
 % set current action
 actionManager.setCurrentAction("safe_navigation"); 
-w
+
 % Define desired positions and orientations (world frame)
 w_arm_goal_position = [12.2025, 37.3748, -39.8860]';
 w_arm_goal_orientation = [0, pi, pi/2];

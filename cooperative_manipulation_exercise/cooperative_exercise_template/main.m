@@ -41,7 +41,7 @@ arm1.setGoal(w_obj_pos,w_obj_ori,[w_obj_pos(1) - obj_length/2; w_obj_pos(2:3)],r
 arm2.setGoal(w_obj_pos,w_obj_ori,[w_obj_pos(1) + obj_length/2; w_obj_pos(2:3)],rotation(0, pi+y_theta, 0));
 
 %Define Object goal frame (Cooperative Motion)
-wTog=[rotation(0,0,0) [0.6, 0.4, 0.48]'; 0 0 0 1];
+wTog=[rotation(0,0,pi/3) [0.5 0 0.30]'; 0 0 0 1];
 %wTog=[rotation(0,0,pi/3) [0.6, 0.4, 0.48]'; 0 0 0 1];
 arm1.set_obj_goal(wTog)
 arm2.set_obj_goal(wTog)
@@ -168,7 +168,7 @@ for t = 0:dt:end_time
         rigid_move_l.updateReference(coop_system.left_arm);
         rigid_move_r.updateReference(coop_system.right_arm);
     end
-    if (norm(coop_system.left_arm.dist_to_goal) < threshold_goal && ~coop_system.left_arm.o_reached) && (norm(coop_system.right_arm.dist_to_goal) < threshold_goal && ~coop_system.right_arm.o_reached)
+    if (norm(coop_system.left_arm.rot_to_goal) < threshold_goal && ~coop_system.left_arm.o_reached) && (norm(coop_system.right_arm.rot_to_goal) < threshold_goal && ~coop_system.right_arm.o_reached)
         actionManager_arm1.setCurrentAction("zeroVelLeft");
         actionManager_arm2.setCurrentAction("zeroVelRight");
         coop_system.left_arm.o_reached = true;

@@ -43,10 +43,11 @@ arm1.setGoal(w_obj_pos,w_obj_ori, [w_obj_pos(1) - obj_length/2; w_obj_pos(2:3)],
 arm2.setGoal(w_obj_pos,w_obj_ori, [w_obj_pos(1) + obj_length/2; w_obj_pos(2:3)],rotation(0, pi+y_theta, 0));
 
 %Define Object goal frame (Cooperative Motion)
-wTog=[rotation(0,0,0) [0.65, -0.35, 0.28]'; 0 0 0 1];
+%wTog=[rotation(0,0,0) [0.65, -0.35, 0.28]'; 0 0 0 1];
 %wTog=[rotation(0,0,0) [-0.3, 0, 0.35]'; 0 0 0 1]; 
 %wTog=[rotation(0,0,0) [0, 0.4, 0.35]'; 0 0 0 1]; 
 %wTog=[rotation(0,0,0) [1.2, -0.3, 0.4]'; 0 0 0 1]; 
+wTog=[rotation(0,0,pi/3) [0.5 0.0 0.59]'; 0 0 0 1]; 
 arm1.set_obj_goal(wTog)
 arm2.set_obj_goal(wTog)
 
@@ -136,7 +137,8 @@ for t = 0:dt:end_time
         rigid_move_r.updateReference(bm_sim);
     end
 
-    if (norm(bm_sim.left_arm.dist_to_goal) < threshold_goal && ~bm_sim.left_arm.o_reached) && (norm(bm_sim.right_arm.dist_to_goal) < threshold_goal && ~bm_sim.right_arm.o_reached)
+    if (norm(bm_sim.left_arm.dist_to_goal) < threshold_goal && norm(bm_sim.left_arm.rot_to_goal) < threshold_goal && ~bm_sim.left_arm.o_reached) ...
+            && (norm(bm_sim.right_arm.dist_to_goal) < threshold_goal && norm(bm_sim.right_arm.rot_to_goal) < threshold_goal && ~bm_sim.right_arm.o_reached)
         actionManager.setCurrentAction("zero_vel"); 
         bm_sim.left_arm.o_reached = true;
         bm_sim.right_arm.o_reached = true;
